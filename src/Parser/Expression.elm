@@ -5,6 +5,10 @@ import Set
 import Syntax.Expression as Expression
 
 
+
+-- EXPRESSION
+
+
 parseExpression : String -> Result (List Parser.DeadEnd) String
 parseExpression expressionString =
     Parser.run expression expressionString
@@ -44,6 +48,10 @@ comparator =
         ]
 
 
+
+-- NUMERICAL EXPRESSION
+
+
 numericalExpression : Parser Expression.NumericalExpression
 numericalExpression =
     Parser.oneOf
@@ -67,6 +75,10 @@ numericalOperator =
         , Parser.succeed Expression.Subtraction
             |. Parser.token "-"
         ]
+
+
+
+-- TERM
 
 
 term : Parser Expression.Term
@@ -96,6 +108,10 @@ termOperator =
         ]
 
 
+
+-- UNARY EXPRESSION
+
+
 unaryExpression : Parser Expression.UnaryExpression
 unaryExpression =
     Parser.succeed Expression.UnaryExpression
@@ -107,6 +123,10 @@ unaryExpression =
             , Parser.succeed Nothing
             ]
         |= factor
+
+
+
+-- FACTOR
 
 
 factor : Parser Expression.Factor
@@ -125,23 +145,7 @@ factor =
         , Parser.succeed Expression.NullFactor
             |. Parser.keyword "null"
         , Parser.succeed Expression.NamedFactor
-            |= Parser.variable
-                { start = Char.isLower
-                , inner = \c -> Char.isAlphaNum c || c == '_'
-                , reserved = Set.empty -- TODO
-                }
-            |= Parser.sequence
-                { start = ""
-                , separator = ""
-                , end = ""
-                , spaces = Parser.spaces
-                , item =
-                    Parser.succeed identity
-                        |. Parser.token "["
-                        |= Parser.lazy (\_ -> numericalExpression)
-                        |. Parser.token "]"
-                , trailing = Parser.Forbidden
-                }
+            |= variableAccessor
         , Parser.succeed Expression.ParenthesizedFactor
             |. Parser.token "("
             |. Parser.spaces
@@ -149,3 +153,34 @@ factor =
             |. Parser.spaces
             |. Parser.token ")"
         ]
+
+
+
+-- VARIABLE ACCESSOR
+
+
+variableName : Parser String
+variableName =
+    Parser.variable
+        { start = Char.isLower
+        , inner = \c -> Char.isAlphaNum c || c == '_'
+        , reserved = Set.empty -- TODO
+        }
+
+
+variableAccessor : Parser Expression.VariableAccessor
+variableAccessor =
+    Parser.succeed Expression.VariableAccessor
+        |= variableName
+        |= Parser.sequence
+            { start = ""
+            , separator = ""
+            , end = ""
+            , spaces = Parser.spaces
+            , item =
+                Parser.succeed identity
+                    |. Parser.token "["
+                    |= Parser.lazy (\_ -> numericalExpression)
+                    |. Parser.token "]"
+            , trailing = Parser.Forbidden
+            }

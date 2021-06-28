@@ -8,6 +8,7 @@ module Syntax.Expression exposing
     , Term(..)
     , TermOperator(..)
     , UnaryExpression(..)
+    , VariableAccessor
     , showExpression
     )
 
@@ -79,8 +80,16 @@ type Factor
     | FloatFactor Float
     | StringFactor String
     | NullFactor
-    | NamedFactor String (List NumericalExpression)
+    | NamedFactor VariableAccessor
     | ParenthesizedFactor NumericalExpression
+
+
+
+-- VARIABLE ACCESSOR
+
+
+type alias VariableAccessor =
+    { name : String, accessors : List NumericalExpression }
 
 
 
@@ -102,17 +111,20 @@ showFactor factor =
         NullFactor ->
             "null"
 
-        NamedFactor name accessors ->
-            let
-                viewAccessor accessor =
-                    "[" ++ showNumericalExpression accessor ++ "]"
-            in
-            name
-                :: List.map viewAccessor accessors
-                |> String.concat
+        NamedFactor variableAccessor ->
+            viewVariableAccessor variableAccessor
 
         ParenthesizedFactor numericalExpression ->
             "(" ++ showNumericalExpression numericalExpression ++ ")"
+
+
+viewVariableAccessor : VariableAccessor -> String
+viewVariableAccessor accessor =
+    accessor.name
+        :: List.map
+            (\idxExpression -> "[" ++ showNumericalExpression idxExpression ++ "]")
+            accessor.accessors
+        |> String.concat
 
 
 showUnaryExpression : UnaryExpression -> String

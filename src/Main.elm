@@ -4,6 +4,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Parser
 import Parser.Program as Program
+import Set
 import Syntax.Program
 
 
@@ -119,7 +120,13 @@ deadEndsToString : List Parser.DeadEnd -> String
 deadEndsToString deadEnds =
     String.join "\n"
         ("Something went wrong when parsing your source file. These are the errors I gathered:\n"
-            :: List.map (\deadEnd -> "\t" ++ deadEndToString deadEnd) deadEnds
+            :: (deadEnds
+                    |> List.map (\deadEnd -> "\t" ++ deadEndToString deadEnd)
+                    -- Because some parsers are backtrackable, we might get
+                    -- duplicate errors, so we eliminate them here
+                    |> Set.fromList
+                    |> Set.toList
+               )
         )
         ++ "\n"
 

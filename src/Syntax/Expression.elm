@@ -12,14 +12,26 @@ module Syntax.Expression exposing
     , showExpression
     )
 
+{-| Expressions are essential to the language. They describe how we can perform
+mathematical operations, compare expressions with each other, and reference
+variables
+-}
+
 -- EXPRESSION
 
 
+{-| Represents a valid `Expression`. From the grammar provided, an expression
+can either be a single [`NumericalExpression`](#NumericalExpression), or two
+`NumericalExpression`s, joined together by a [`Comparator`](#Comparator)
+function
+-}
 type Expression
     = SingleExpression NumericalExpression
     | WithComparator NumericalExpression Comparator NumericalExpression
 
 
+{-| Represents all the possible boolean `Comparator`s, such as `>` and `>`
+-}
 type Comparator
     = LessThan
     | GreatherThan
@@ -33,11 +45,29 @@ type Comparator
 -- NUMERICAL EXPRESSION
 
 
+{-| From the grammar, a `NumericalExpression` can either be a single
+[`Term`](#Term), or multiple `Terms` joined together by a
+[`NumericalOperator`](#NumericalOperator) (`Addition` or `Subtraction`). This is
+achieved here by forming a tree-like structure, where each element can either be
+a leaf of the tree, or a node that has a `Term`, a `NumericalOperator` and a
+single `NumericalExpression` child:
+
+        Term +
+            (Term -
+                (Term +
+                    (Term)
+                )
+            )
+
+-}
 type NumericalExpression
     = SingleNumericalExpression Term
     | MultipleNumericalExpressions Term NumericalOperator NumericalExpression
 
 
+{-| A `NumericalOperator` describes the lowest-priority operators, such as
+`Addition` and `Subtraction`
+-}
 type NumericalOperator
     = Addition
     | Subtraction
@@ -47,11 +77,18 @@ type NumericalOperator
 -- TERM
 
 
+{-| A `Term` joins [`UnaryExpression`s](#UnaryExpression) with higher-priority
+operators, such as `Multiplication` and `Division`. It follows a very similar
+structure to [`NumericalExpression`](#NumericalExpression)
+-}
 type Term
     = SingleTerm UnaryExpression
     | MultipleTerms UnaryExpression TermOperator Term
 
 
+{-| A `TermOperator` describes the highest-priority binary operators, such as
+`Multiplication` and `Division`
+-}
 type TermOperator
     = Multiplication
     | Division
@@ -62,19 +99,29 @@ type TermOperator
 -- UNARY EXPRESSION
 
 
+{-| A `UnaryExpression` is used to add (optional) unary operators
+(such as [`Sign`](#Sign)) to a [`Factor`](#Factor)
+-}
+type UnaryExpression
+    = UnaryExpression (Maybe Sign) Factor
+
+
+{-| This defines which kind of signs we can have in a
+[`UnaryExpression`](#UnaryExpression)
+-}
 type Sign
     = Plus
     | Minus
-
-
-type UnaryExpression
-    = UnaryExpression (Maybe Sign) Factor
 
 
 
 -- FACTOR
 
 
+{-| The `Factor` is the lowest-level token, such as ints, floats, strings and
+named variables. It also provides the ability to have
+[`NumericalExpression`s](#NumericalExpression) prioritized with parenthesis
+-}
 type Factor
     = IntFactor Int
     | FloatFactor Float
@@ -88,6 +135,16 @@ type Factor
 -- VARIABLE ACCESSOR
 
 
+{-| We use `VariableAccessor`s to access the indexes of a variable:
+
+```c
+    x = new int[10][10];
+    x[5][10]; // This is a VariableAccessor: `{ name = x, accessors = [5, 10] }`
+
+    x; // This is a VariableAccessor: `{ name = x, accessors = [] }`
+```
+
+-}
 type alias VariableAccessor =
     { name : String, accessors : List NumericalExpression }
 
@@ -221,6 +278,11 @@ showComparator comparator =
             "!="
 
 
+{-| This is useful for debugging purposes. It turns an
+[`Expression`](#Expression) into a more human-readable format. It's pretty much
+the reverse of parsing the expression, but also adding some characters as `{`
+and `}` to delimit certain kinds of expressions.
+-}
 showExpression : Expression -> String
 showExpression expression =
     case expression of

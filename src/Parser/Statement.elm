@@ -214,3 +214,34 @@ statementList =
             , trailing = Parser.Forbidden
             }
         |. Parser.token "}"
+
+
+
+-- FUNCTION DECLARATION
+
+
+functionDeclaration : Parser Statement.FunctionDeclaration
+functionDeclaration =
+    Parser.succeed Statement.FunctionDeclaration
+        |. Parser.keyword "def"
+        |. Parser.spaces
+        |= Expression.variableName
+        |. Parser.spaces
+        |= Parser.sequence
+            { start = "("
+            , separator = ","
+            , end = ")"
+            , spaces = Parser.spaces
+            , item = functionParameter
+            , trailing = Parser.Optional
+            }
+        |. Parser.spaces
+        |= statementList
+
+
+functionParameter : Parser Statement.FunctionParameter
+functionParameter =
+    Parser.succeed Statement.FunctionParameter
+        |= variableType
+        |. Parser.spaces
+        |= Expression.variableName

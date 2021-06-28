@@ -5,6 +5,8 @@ module Syntax.Statement exposing
     , Declaration
     , For
     , FunctionCall
+    , FunctionDeclaration
+    , FunctionParameter
     , If
     , ParameterList
     , Statement(..)
@@ -112,4 +114,21 @@ type alias For =
 type alias StatementList =
     { firstStatement : Statement
     , otherStatements : List Statement
+    }
+
+
+
+-- FUNCTION DECLARATION
+
+
+type alias FunctionDeclaration =
+    { name : String
+    , parameters : List FunctionParameter
+    , body : StatementList
+    }
+
+
+type alias FunctionParameter =
+    { type_ : VariableType
+    , name : String
     }

@@ -1,10 +1,13 @@
 port module Main exposing (..)
 
+import Json.Decode as Decode
+import Json.Encode as Encode
 
-port printSomething : String -> Cmd msg
+
+port requestFile : String -> Cmd msg
 
 
-port getSomething : (String -> msg) -> Sub msg
+port getFile : (Encode.Value -> msg) -> Sub msg
 
 
 main : Program () Model Msg
@@ -17,23 +20,30 @@ main =
 
 
 type alias Model =
-    ()
+    { fileContents : Maybe String }
 
 
 type Msg
-    = GotSomething String
+    = GotFile (Result Decode.Error String)
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( (), printSomething "Init" )
+    ( { fileContents = Nothing }, requestFile "examples/funcList.lcc" )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update _ _ =
-    ( (), printSomething "Update" )
+update (GotFile fileResult) _ =
+    ( { fileContents = Result.toMaybe fileResult }
+    , Cmd.none
+    )
 
 
 subscriptions : Model -> Sub Msg
-subscriptions () =
-    getSomething GotSomething
+subscriptions _ =
+    getFile (Decode.decodeValue getFileDecoder >> GotFile)
+
+
+getFileDecoder : Decode.Decoder String
+getFileDecoder =
+    Decode.field "fileContents" Decode.string

@@ -1,14 +1,15 @@
 const Elm = require('./elm.js').Elm;
+const fs = require('fs');
 
 const main = Elm.Main.init();
 
-console.log(main.ports)
+main.ports.requestFile.subscribe((filename) => {
+    fs.readFile(filename, 'utf8', (err, fileContents) => {
+        if (err) {
+            main.ports.getFile.send({ error: err })
+            return
+        }
 
-main.ports.printSomething.subscribe((what) => {
-    console.log(what)
-})
-
-setInterval(() => {
-    main.ports.getSomething.send('who')
-}, 300)
-
+        main.ports.getFile.send({ fileContents })
+    });
+});

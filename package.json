@@ -1,0 +1,18 @@
+{
+  "name": "LCC",
+  "version": "1.0.0",
+  "description": "Compilers Construction Class Project for university",
+  "main": "index.js",
+  "repository": "https://github.com/NeoVier/LCC",
+  "author": "Henrique Buss",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "dev": "elm make src/Main.elm --output=build/elm.js && cp src/index.js build/index.js && yarn start",
+    "build": "elm make --optimize src/Main.elm --output=build/elm.js && cp src/index.js build/index.js",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "elm": "^0.19.1-5"
+  }
+}

@@ -1,4 +1,9 @@
-module Parser.Expression exposing (..)
+module Parser.Expression exposing
+    ( expression
+    , numericalExpression
+    , variableAccessor
+    , variableName
+    )
 
 import Parser exposing ((|.), (|=), Parser)
 import Set
@@ -7,12 +12,6 @@ import Syntax.Expression as Expression
 
 
 -- EXPRESSION
-
-
-parseExpression : String -> Result (List Parser.DeadEnd) String
-parseExpression expressionString =
-    Parser.run expression expressionString
-        |> Result.map Expression.showExpression
 
 
 expression : Parser Expression.Expression
@@ -129,6 +128,29 @@ unaryExpression =
 -- FACTOR
 
 
+string : Parser String
+string =
+    Parser.succeed ()
+        |. Parser.token "\""
+        |. Parser.loop '"' stringHelp
+        |> Parser.getChompedString
+        -- Remove quotes
+        |> Parser.map (String.dropLeft 1 >> String.dropRight 1)
+
+
+stringHelp : Char -> Parser (Parser.Step Char ())
+stringHelp separator =
+    Parser.oneOf
+        [ Parser.succeed (Parser.Done ())
+            |. Parser.token (String.fromChar separator)
+        , Parser.succeed (Parser.Loop separator)
+            |. Parser.chompIf (\char -> char == '\\')
+            |. Parser.chompIf (\_ -> True)
+        , Parser.succeed (Parser.Loop separator)
+            |. Parser.chompIf (\char -> char /= '\\' && char /= separator)
+        ]
+
+
 factor : Parser Expression.Factor
 factor =
     Parser.oneOf
@@ -139,9 +161,8 @@ factor =
             , binary = Nothing
             , float = Just Expression.FloatFactor
             }
-        , Parser.succeed Expression.StringFactor
-            |. Parser.symbol "\""
-            |= (Parser.chompUntil "\"" |> Parser.getChompedString)
+        , string
+            |> Parser.map Expression.StringFactor
         , Parser.succeed Expression.NullFactor
             |. Parser.keyword "null"
         , Parser.succeed Expression.NamedFactor
@@ -162,9 +183,23 @@ factor =
 variableName : Parser String
 variableName =
     Parser.variable
-        { start = Char.isLower
+        { start = Char.isAlpha
         , inner = \c -> Char.isAlphaNum c || c == '_'
-        , reserved = Set.empty -- TODO
+        , reserved =
+            Set.fromList
+                [ "def"
+                , "print"
+                , "read"
+                , "return"
+                , "break"
+                , "int"
+                , "float"
+                , "string"
+                , "new"
+                , "if"
+                , "else"
+                , "for"
+                ]
         }
 
 

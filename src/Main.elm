@@ -2,6 +2,8 @@ port module Main exposing (..)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Parser
+import Parser.Program as Program
 
 
 port requestFile : String -> Cmd msg
@@ -29,11 +31,21 @@ type Msg
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { fileContents = Nothing }, requestFile "examples/funcList.lcc" )
+    ( { fileContents = Nothing }, requestFile "examples/floatAttribution.lcc" )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update (GotFile fileResult) _ =
+    let
+        _ =
+            case fileResult of
+                Ok fileContent ->
+                    Parser.run Program.program fileContent
+                        |> Debug.log "Result"
+
+                Err _ ->
+                    Err []
+    in
     ( { fileContents = Result.toMaybe fileResult }
     , Cmd.none
     )

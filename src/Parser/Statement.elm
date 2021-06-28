@@ -1,4 +1,4 @@
-module Parser.Statement exposing (..)
+module Parser.Statement exposing (functionDeclaration, statement)
 
 import Parser exposing ((|.), (|=), Parser)
 import Parser.Expression as Expression
@@ -97,13 +97,17 @@ attribution =
     Parser.succeed Statement.Attribution
         |= Expression.variableAccessor
         |. Parser.spaces
+        |. Parser.token "="
+        |. Parser.spaces
         |= Parser.oneOf
-            [ Expression.expression
+            [ functionCall
+                |> Parser.map Statement.FunctionCallAttribution
+                |> Parser.backtrackable
+            , Expression.expression
                 |> Parser.map Statement.ExpressionAttribution
+                |> Parser.backtrackable
             , allocation
                 |> Parser.map Statement.AllocationExpression
-            , functionCall
-                |> Parser.map Statement.FunctionCallAttribution
             ]
 
 
@@ -170,6 +174,7 @@ ifStatement =
                 |. Parser.keyword "else"
                 |. Parser.spaces
                 |= Parser.lazy (\_ -> statement)
+                |> Parser.backtrackable
             , Parser.succeed Nothing
             ]
 
@@ -194,6 +199,8 @@ forStatement =
         |. Parser.token ";"
         |. Parser.spaces
         |= attribution
+        |. Parser.spaces
+        |. Parser.token ")"
         |. Parser.spaces
         |= Parser.lazy (\_ -> statement)
 

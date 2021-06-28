@@ -116,9 +116,9 @@ unaryExpression =
     Parser.succeed Expression.UnaryExpression
         |= Parser.oneOf
             [ Parser.succeed (Just Expression.Plus)
-                |. Parser.chompIf (\c -> c == '+')
+                |. Parser.symbol "+"
             , Parser.succeed (Just Expression.Minus)
-                |. Parser.chompIf (\c -> c == '-')
+                |. Parser.symbol "-"
             , Parser.succeed Nothing
             ]
         |= factor

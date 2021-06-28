@@ -15,28 +15,28 @@ statement =
         [ Parser.succeed Statement.VariableDeclaration
             |= declaration
             |. Parser.spaces
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         , Parser.succeed Statement.AttributionStatement
             |= attribution
             |. Parser.spaces
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         , Parser.succeed Statement.PrintStatement
             |. Parser.keyword "print"
             |. Parser.spaces
             |= Expression.expression
             |. Parser.spaces
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         , Parser.succeed Statement.ReadStatement
             |. Parser.keyword "read"
             |. Parser.spaces
             |= Expression.variableAccessor
             |. Parser.spaces
-            |. Parser.token ";"
+            |. Parser.symbol ";"
             |. Parser.spaces
         , Parser.succeed Statement.ReturnStatement
             |. Parser.keyword "return"
             |. Parser.spaces
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         , ifStatement
             |> Parser.map Statement.IfStatement
         , forStatement
@@ -45,9 +45,9 @@ statement =
             |> Parser.map Statement.StatementBlock
         , Parser.succeed Statement.BreakStatement
             |. Parser.keyword "break"
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         , Parser.succeed Statement.Semicolon
-            |. Parser.token ";"
+            |. Parser.symbol ";"
         ]
 
 

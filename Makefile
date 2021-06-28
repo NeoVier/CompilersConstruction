@@ -1,2 +1,2 @@
-production-run:
-	yarn build && yarn start
+run:
+	yarn build && yarn start $(input)

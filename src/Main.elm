@@ -4,6 +4,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Parser
 import Parser.Program as Program
+import Syntax.Program
 
 
 
@@ -37,7 +38,7 @@ main =
 
 
 type alias Model =
-    { fileContents : Maybe String }
+    { program : Maybe Syntax.Program.Program }
 
 
 init : Encode.Value -> ( Model, Cmd Msg )
@@ -57,7 +58,7 @@ init flags =
                 Err _ ->
                     Err "I couldn't decode the CLI arguments, make sure you're sending them in correctly!"
     in
-    ( { fileContents = Nothing }
+    ( { program = Nothing }
     , case filename of
         Ok file ->
             requestFile file
@@ -76,20 +77,24 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update (GotFile fileResult) _ =
-    let
-        _ =
-            case fileResult of
-                Ok fileContent ->
-                    Parser.run Program.program fileContent
-                        |> Debug.log "Result"
+update (GotFile fileResult) model =
+    case fileResult of
+        Err err ->
+            ( model
+            , Decode.errorToString err
+                |> printError
+            )
 
-                Err _ ->
-                    Err []
-    in
-    ( { fileContents = Result.toMaybe fileResult }
-    , Cmd.none
-    )
+        Ok fileContent ->
+            case Parser.run Program.program fileContent of
+                Ok validProgram ->
+                    ( { model | program = Just validProgram }, Cmd.none )
+
+                Err err ->
+                    ( model
+                    , deadEndsToString err
+                        |> printError
+                    )
 
 
 
@@ -108,3 +113,62 @@ subscriptions _ =
 getFileDecoder : Decode.Decoder String
 getFileDecoder =
     Decode.field "fileContents" Decode.string
+
+
+deadEndsToString : List Parser.DeadEnd -> String
+deadEndsToString deadEnds =
+    String.join "\n"
+        ("Something went wrong when parsing your source file. These are the errors I gathered:\n"
+            :: List.map (\deadEnd -> "\t" ++ deadEndToString deadEnd) deadEnds
+        )
+        ++ "\n"
+
+
+deadEndToString : Parser.DeadEnd -> String
+deadEndToString { row, col, problem } =
+    let
+        showPosition =
+            "line " ++ String.fromInt row ++ ", column " ++ String.fromInt col
+    in
+    case problem of
+        Parser.ExpectingInt ->
+            "I was expecting to see an int on " ++ showPosition
+
+        Parser.ExpectingHex ->
+            "I was expecting to see a hexadecimal number on " ++ showPosition
+
+        Parser.ExpectingOctal ->
+            "I was expecting to see an octal number on " ++ showPosition
+
+        Parser.ExpectingBinary ->
+            "I was expecting to see a binary number on " ++ showPosition
+
+        Parser.ExpectingFloat ->
+            "I was expecting to see a float on " ++ showPosition
+
+        Parser.ExpectingNumber ->
+            "I was expecting to see a number on " ++ showPosition
+
+        Parser.ExpectingVariable ->
+            "I was expecting to see a variable on " ++ showPosition
+
+        Parser.Expecting expected ->
+            "I was expecting to see " ++ expected ++ " on " ++ showPosition
+
+        Parser.ExpectingSymbol symbol ->
+            "I was expecting to see the " ++ symbol ++ " symbol on " ++ showPosition
+
+        Parser.ExpectingKeyword keyword ->
+            "I was expecting to see the " ++ keyword ++ " keyword on " ++ showPosition
+
+        Parser.ExpectingEnd ->
+            "I was expecting to see the file to end on " ++ showPosition
+
+        Parser.UnexpectedChar ->
+            "I encountered an unexpected character on " ++ showPosition
+
+        Parser.Problem problem_ ->
+            "I got this problem: " ++ problem_ ++ " on " ++ showPosition
+
+        Parser.BadRepeat ->
+            "I got a bad repeat error on " ++ showPosition

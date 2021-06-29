@@ -1,3 +1,9 @@
+{- UFSC - CTC - INE5426 Construcao de Compiladores
+   Henrique da Cunha Buss
+   June 2021
+-}
+
+
 module Parser.Statement exposing (functionDeclaration, statement)
 
 import Parser exposing ((|.), (|=), Parser)

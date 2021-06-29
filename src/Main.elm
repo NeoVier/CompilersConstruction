@@ -1,4 +1,14 @@
+{- UFSC - CTC - INE5426 Construcao de Compiladores
+   Henrique da Cunha Buss
+   June 2021
+-}
+
+
 port module Main exposing (main)
+
+{-| The main module is responsible for parsing command-line arguments,
+requesting data from JS, and showing the output of our program
+-}
 
 import Json.Decode as Decode
 import Json.Encode as Encode

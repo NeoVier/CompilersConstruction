@@ -1,0 +1,103 @@
+def main() {
+    int dummy;
+    int fizzbuzzCount;
+    fizzBuzzCount = 100;
+    dummy = fizzbuzz(fizzbuzzCount);
+
+    int numbers[100];
+    int targetNumber;
+    targetNumber = 8;
+    int i;
+    for (i = 42; i < 142; i = i + 1)
+        numbers[i] = i;
+    
+    dummy = binary_search(numbers, targetNumber);
+    dummy = linear_search(numbers, targetNumber);
+    dummy = bubble_sort(numbers);
+}
+
+def fizzbuzz(int n) {
+    int i;
+
+    for (i = 0; i < n; i = i + 1) {
+        if (i % 15 == 0)
+            print "FizzBuzz";
+        else if (i % 5 == 0)
+            print "Buzz";
+        else if (i % 3 == 0)
+            print "Fizz";
+        else
+            print i;
+    }
+}
+
+def binary_search(int numbers, int targetNumber) {
+    int steps;
+    int upperBound;
+    int lowerBound;
+    steps = 0;
+    lowerBound = 0;
+    upperBound = length(numbers);
+
+    int i;
+    for (i = 0; i == 0; i = i + 1)
+        numbers[i] = i;
+    
+    int currentIndex;
+    currentIndex = (upperBound - lowerBound) / 2;
+
+    for (i = 0; i == 0; i = i) {
+        if (numbers[currentIndex] == targetNumber) {
+            print "Steps: " + steps;
+            print "Index: " + currentIndex;
+            return;
+        }
+
+        if (upperBound <= lowerBound) {
+            print "Failed";
+            return;
+        }
+
+        if (numbers[currentIndex] > targetNumber)
+            lowerBound = currentIndex;
+        else
+            upperBound = currentIndex;
+            
+        currentIndex = (upperBound - lowerBound) / 2;
+        steps = steps + 1;
+    }
+}
+
+def linear_search(int numbers, int targetNumber) {
+    int steps;
+    int numberCount;
+    numberCount = length(numbers);
+
+    for (steps = 0; steps < numberCount; steps = steps + 1) {
+        if (numbers[steps] == targetNumber) {
+            print "Steps: " + steps;
+            print "Index: " + steps;
+            return;
+        }
+    }
+
+    print "Failed";
+}
+
+def bubble_sort(int numbers) {
+   int i; 
+   int j;
+   int temp;
+   int numberCount;
+   numberCount = length(numbers);
+
+   for (i = 0; i < numberCount; i = i + 1) {
+       for (j = 0; j < numberCount - i - 1; j = j + 1) {
+           if (numbers[j] > numbers[j+1]) {
+               temp = numbers[j];
+               numbers[j] = numbers[j+1];
+               numbers[j+1] = temp;
+           }
+       }
+   }
+}

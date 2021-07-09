@@ -237,9 +237,8 @@ showFunctionDeclaration functionDeclaration =
                 |> List.map showFunctionParameter
                 |> String.join ", "
            )
-        ++ ")\n{\n"
+        ++ ")\n"
         ++ showStatementList functionDeclaration.body
-        ++ "\n}"
 
 
 {-| Turn a `VariableType` into a `String`

@@ -1,0 +1,115 @@
+def main() {
+    int userInput;
+    int i;
+    int dummy;
+
+    for (i = 0; i == 0; i = i) {
+        dummy = printMenu();
+
+        read userInput;
+
+        if (userInput == 0)
+            break;
+        else if (userInput == 1)
+            dummy = guessingGame();
+        else if (userInput == 2)
+            dummy = calculator();
+        else if (userInput == 3) {
+            int fibonacciLength;
+
+            print "How many fibonacci numbers do you want?";
+            read fibonacciLength;
+            dummy = fibonacci(fibonacciLength);
+        }
+        else
+            print "Invalid choice, please pick a valid one.";
+    }
+}
+
+def printMenu() {
+    print "Here are your choices:";
+    print "\t0: Quit";
+    print "\t1: Guessing game";
+    print "\t2: Calculator";
+    print "\t3: Fibonacci numbers";
+}
+
+
+def guessingGame() {
+    int userInput;
+    int correctNumber;
+    int i;
+
+    correctNumber = 42;
+
+    for (i = 0; i == 0; i = i) {
+        read userInput;
+
+        if (userInput == correctNumber) {
+            print "You got it right! Do you want to play again?\n\t0: No\n\t1: Yes";
+
+            read userInput;
+
+            if (userInput == 0)
+                break;
+        } else {
+            if (userInput < correctNumber)
+                print "Your guess was too low... Try higher";
+            else
+                print "Your guess was too high... Try lower";
+        }
+    }
+}
+
+def calculator() {
+    int firstOperand;
+    string operation;
+    int secondOperand;
+    float result;
+
+    print "I am a calculator! Give me two numbers and an operation and I'll give you a result!";
+
+    for (i = 0; i == 0; i = i) {
+        print "Give me the first operand";
+        read firstOperand;
+
+        print "Now the operation (addition, subtraction, multiplication, division, modulo)";
+        read operation;
+
+        print "And finally the second operand";
+        read secondOperand;
+
+        if (operation == "addition")
+            result = firstOperand + secondOperand;
+        else if (operation == "subtraction")
+            result = firstOperand - secondOperand;
+        else if (operation == "multiplication")
+            result = firstOperand * secondOperand;
+        else if (operation == "division")
+            result = firstOperand / secondOperand;
+        else if (operation == "modulo")
+            result = firstOperand % secondOperand;
+        else
+            result = -1;
+
+        print result;
+    }
+}
+
+def fibonacci(int n) {
+    int firstNumber;
+    int secondNumber;
+    int currentNumber;
+    int i;
+
+    firstNumber = 0;
+    secondNumber = 1;
+
+    for (i = 0; i < n; i = i + 1) {
+        currentNumber = firstNumber + secondNumber;
+        print currentNumber;
+
+        firstNumber = secondNumber;
+        secondNumber = currentNumber;
+    }
+}

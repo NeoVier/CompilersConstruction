@@ -174,13 +174,12 @@ ifStatement =
         |. Parser.token ")"
         |. Parser.spaces
         |= Parser.lazy (\_ -> statement)
+        |. Parser.spaces
         |= Parser.oneOf
             [ Parser.succeed Just
-                |. Parser.spaces
                 |. Parser.keyword "else"
                 |. Parser.spaces
                 |= Parser.lazy (\_ -> statement)
-                |> Parser.backtrackable
             , Parser.succeed Nothing
             ]
 

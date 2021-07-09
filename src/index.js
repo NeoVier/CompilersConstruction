@@ -13,8 +13,10 @@ const cliArgs = process.argv.slice(2);
 // arguments on the JS side, and let Elm deal with that
 const main = Elm.Main.init({ flags: cliArgs });
 
-main.ports.printError.subscribe((error) => {
-    console.error(error)
+console.table([{ name: 'John', lastname: 'Doe' }, { name: 'Mary', lastname: 'Jane' }])
+
+main.ports.print.subscribe((error) => {
+    console.log(error)
 });
 
 main.ports.requestFile.subscribe((filename) => {

@@ -15,7 +15,9 @@ module Syntax.Expression exposing
     , TermOperator(..)
     , UnaryExpression(..)
     , VariableAccessor
-    , showExpression
+    , show
+    , showNumericalExpression
+    , showVariableAccessor
     )
 
 {-| Expressions are essential to the language. They describe how we can perform
@@ -228,11 +230,11 @@ showTerm term =
 
         MultipleTerms unaryExpression operator otherTerm ->
             String.join " "
-                [ "{"
+                [ "("
                 , showUnaryExpression unaryExpression
                 , showTermOperator operator
                 , showTerm otherTerm
-                , "}"
+                , ")"
                 ]
 
 
@@ -262,6 +264,15 @@ showNumericalExpression numericalExpression =
                 ]
 
 
+showVariableAccessor : VariableAccessor -> String
+showVariableAccessor variableAccessor =
+    variableAccessor.name
+        ++ (variableAccessor.accessors
+                |> List.map (\accessor -> "[" ++ showNumericalExpression accessor ++ "]")
+                |> String.concat
+           )
+
+
 showComparator : Comparator -> String
 showComparator comparator =
     case comparator of
@@ -289,8 +300,8 @@ showComparator comparator =
 the reverse of parsing the expression, but also adding some characters as `{`
 and `}` to delimit certain kinds of expressions.
 -}
-showExpression : Expression -> String
-showExpression expression =
+show : Expression -> String
+show expression =
     case expression of
         SingleExpression numericalExpression ->
             showNumericalExpression numericalExpression

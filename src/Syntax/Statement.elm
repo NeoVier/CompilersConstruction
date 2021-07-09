@@ -18,6 +18,8 @@ module Syntax.Statement exposing
     , Statement(..)
     , StatementList
     , VariableType(..)
+    , show
+    , showFunctionDeclaration
     )
 
 {-| Statements are what let us do complex branching, repeat code,
@@ -181,3 +183,172 @@ type alias FunctionParameter =
     { type_ : VariableType
     , name : String
     }
+
+
+
+-- SHOW
+
+
+show : Statement -> String
+show statement =
+    case statement of
+        VariableDeclaration declaration ->
+            showDeclaration declaration ++ ";"
+
+        AttributionStatement attribution ->
+            showAttribution attribution ++ ";"
+
+        PrintStatement expression ->
+            showPrintStatement expression ++ ";"
+
+        ReadStatement variableAccessor ->
+            showReadStatement variableAccessor ++ ";"
+
+        ReturnStatement ->
+            "return;"
+
+        IfStatement if_ ->
+            showIfStatement if_
+
+        ForStatement for ->
+            showForStatement for
+
+        StatementBlock statementList ->
+            showStatementList statementList
+
+        BreakStatement ->
+            "break;"
+
+        Semicolon ->
+            ";"
+
+
+showDeclaration : Declaration -> String
+showDeclaration declaration =
+    showVariableType declaration.type_
+        ++ " "
+        ++ declaration.name
+        ++ (declaration.dimmensions
+                |> List.map (\dimmension -> "[" ++ String.fromInt dimmension ++ "]")
+                |> String.concat
+           )
+
+
+showAttribution : Attribution -> String
+showAttribution attribution =
+    Expression.showVariableAccessor attribution.variableAccessor
+        ++ " = "
+        ++ showAttributionValue attribution.value
+
+
+showPrintStatement : Expression.Expression -> String
+showPrintStatement expression =
+    "print " ++ Expression.show expression
+
+
+showReadStatement : Expression.VariableAccessor -> String
+showReadStatement variableAccessor =
+    "read " ++ Expression.showVariableAccessor variableAccessor
+
+
+showIfStatement : If -> String
+showIfStatement if_ =
+    let
+        showElse =
+            case if_.elseBody of
+                Nothing ->
+                    ""
+
+                Just elseBody ->
+                    "\nelse\n" ++ show elseBody
+    in
+    "if ("
+        ++ Expression.show if_.condition
+        ++ ")\n"
+        ++ show if_.body
+        ++ showElse
+
+
+showForStatement : For -> String
+showForStatement for =
+    "for ("
+        ++ showAttribution for.attribution
+        ++ "; "
+        ++ Expression.show for.condition
+        ++ "; "
+        ++ showAttribution for.increment
+        ++ ")\n"
+        ++ show for.body
+
+
+showStatementList : StatementList -> String
+showStatementList statementList =
+    "{\n"
+        ++ ((statementList.firstStatement :: statementList.otherStatements)
+                |> List.map show
+                |> String.join "\n"
+           )
+        ++ "\n}"
+
+
+showVariableType : VariableType -> String
+showVariableType variableType =
+    case variableType of
+        IntVariable ->
+            "int"
+
+        FloatVariable ->
+            "float"
+
+        StringVariable ->
+            "string"
+
+
+showAttributionValue : AttributionValue -> String
+showAttributionValue attributionValue =
+    case attributionValue of
+        ExpressionAttribution expression ->
+            Expression.show expression
+
+        AllocationExpression allocation ->
+            showAllocation allocation
+
+        FunctionCallAttribution functionCall ->
+            showFunctionCall functionCall
+
+
+showAllocation : Allocation -> String
+showAllocation allocation =
+    "new "
+        ++ showVariableType allocation.type_
+        ++ ((allocation.firstDimmension :: allocation.dimmensions)
+                |> List.map (\dimmension -> "[" ++ Expression.showNumericalExpression dimmension ++ "]")
+                |> String.concat
+           )
+
+
+showFunctionCall : FunctionCall -> String
+showFunctionCall functionCall =
+    functionCall.functionName ++ "(" ++ String.join ", " functionCall.parameters ++ ")"
+
+
+showFunctionDeclaration : FunctionDeclaration -> String
+showFunctionDeclaration functionDeclaration =
+    "def "
+        ++ functionDeclaration.name
+        ++ "("
+        ++ (functionDeclaration.parameters
+                |> List.map showFunctionParameter
+                |> String.join ", "
+           )
+        ++ ")\n{\n"
+        ++ showStatementList functionDeclaration.body
+        ++ "\n}"
+
+
+showFunctionParameter : FunctionParameter -> String
+showFunctionParameter functionParameter =
+    [ showVariableType functionParameter.type_
+    , functionParameter.name
+    ]
+        |> String.join " "

@@ -28,7 +28,7 @@ port requestFile : String -> Cmd msg
 port getFile : (Encode.Value -> msg) -> Sub msg
 
 
-port printError : String -> Cmd msg
+port print : String -> Cmd msg
 
 
 
@@ -75,7 +75,7 @@ init flags =
             requestFile file
 
         Err err ->
-            printError err
+            print err
     )
 
 
@@ -93,18 +93,21 @@ update (GotFile fileResult) model =
         Err err ->
             ( model
             , Decode.errorToString err
-                |> printError
+                |> print
             )
 
         Ok fileContent ->
             case Parser.run Program.program fileContent of
                 Ok validProgram ->
-                    ( { model | program = Just validProgram }, Cmd.none )
+                    ( { model | program = Just validProgram }
+                    , Syntax.Program.show validProgram
+                        |> print
+                    )
 
                 Err err ->
                     ( model
                     , deadEndsToString err
-                        |> printError
+                        |> print
                     )
 
 

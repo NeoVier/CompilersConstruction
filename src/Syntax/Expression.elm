@@ -158,7 +158,58 @@ type alias VariableAccessor =
 
 
 
--- SHOW HELPERS
+-- SHOW
+
+
+{-| This is useful for debugging purposes. It turns an
+[`Expression`](#Expression) into a more human-readable format. It's pretty much
+the reverse of parsing the expression.
+-}
+show : Expression -> String
+show expression =
+    case expression of
+        SingleExpression numericalExpression ->
+            showNumericalExpression numericalExpression
+
+        WithComparator firstExpression comparator secondExpression ->
+            String.join " "
+                [ showNumericalExpression firstExpression
+                , showComparator comparator
+                , showNumericalExpression secondExpression
+                ]
+
+
+{-| Turn a `NumericalExpression` into a `String`
+-}
+showNumericalExpression : NumericalExpression -> String
+showNumericalExpression numericalExpression =
+    case numericalExpression of
+        SingleNumericalExpression term ->
+            showTerm term
+
+        MultipleNumericalExpressions firstTerm operator otherExpression ->
+            String.join " "
+                [ "("
+                , showTerm firstTerm
+                , showNumericalOperator operator
+                , showNumericalExpression otherExpression
+                , ")"
+                ]
+
+
+{-| Turn a `VariableAccessor` into a `String`
+-}
+showVariableAccessor : VariableAccessor -> String
+showVariableAccessor variableAccessor =
+    variableAccessor.name
+        ++ (variableAccessor.accessors
+                |> List.map (\accessor -> "[" ++ showNumericalExpression accessor ++ "]")
+                |> String.concat
+           )
+
+
+
+-- INTERNAL SHOW HELPERS
 
 
 showFactor : Factor -> String
@@ -248,31 +299,6 @@ showNumericalOperator numericalOperator =
             "-"
 
 
-showNumericalExpression : NumericalExpression -> String
-showNumericalExpression numericalExpression =
-    case numericalExpression of
-        SingleNumericalExpression term ->
-            showTerm term
-
-        MultipleNumericalExpressions firstTerm operator otherExpression ->
-            String.join " "
-                [ "("
-                , showTerm firstTerm
-                , showNumericalOperator operator
-                , showNumericalExpression otherExpression
-                , ")"
-                ]
-
-
-showVariableAccessor : VariableAccessor -> String
-showVariableAccessor variableAccessor =
-    variableAccessor.name
-        ++ (variableAccessor.accessors
-                |> List.map (\accessor -> "[" ++ showNumericalExpression accessor ++ "]")
-                |> String.concat
-           )
-
-
 showComparator : Comparator -> String
 showComparator comparator =
     case comparator of
@@ -293,22 +319,3 @@ showComparator comparator =
 
         Different ->
             "!="
-
-
-{-| This is useful for debugging purposes. It turns an
-[`Expression`](#Expression) into a more human-readable format. It's pretty much
-the reverse of parsing the expression, but also adding some characters as `{`
-and `}` to delimit certain kinds of expressions.
--}
-show : Expression -> String
-show expression =
-    case expression of
-        SingleExpression numericalExpression ->
-            showNumericalExpression numericalExpression
-
-        WithComparator firstExpression comparator secondExpression ->
-            String.join " "
-                [ showNumericalExpression firstExpression
-                , showComparator comparator
-                , showNumericalExpression secondExpression
-                ]

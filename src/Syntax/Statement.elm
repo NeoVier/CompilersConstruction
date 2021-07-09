@@ -20,6 +20,7 @@ module Syntax.Statement exposing
     , VariableType(..)
     , show
     , showFunctionDeclaration
+    , showVariableType
     )
 
 {-| Statements are what let us do complex branching, repeat code,
@@ -189,6 +190,8 @@ type alias FunctionParameter =
 -- SHOW
 
 
+{-| Turn a `Statement` into a `String`
+-}
 show : Statement -> String
 show statement =
     case statement of
@@ -221,6 +224,41 @@ show statement =
 
         Semicolon ->
             ";"
+
+
+{-| Turn a `FunctionDeclaration` into a `String`
+-}
+showFunctionDeclaration : FunctionDeclaration -> String
+showFunctionDeclaration functionDeclaration =
+    "def "
+        ++ functionDeclaration.name
+        ++ "("
+        ++ (functionDeclaration.parameters
+                |> List.map showFunctionParameter
+                |> String.join ", "
+           )
+        ++ ")\n{\n"
+        ++ showStatementList functionDeclaration.body
+        ++ "\n}"
+
+
+{-| Turn a `VariableType` into a `String`
+-}
+showVariableType : VariableType -> String
+showVariableType variableType =
+    case variableType of
+        IntVariable ->
+            "int"
+
+        FloatVariable ->
+            "float"
+
+        StringVariable ->
+            "string"
+
+
+
+-- INTERNAL SHOW HELPERS
 
 
 showDeclaration : Declaration -> String
@@ -291,19 +329,6 @@ showStatementList statementList =
         ++ "\n}"
 
 
-showVariableType : VariableType -> String
-showVariableType variableType =
-    case variableType of
-        IntVariable ->
-            "int"
-
-        FloatVariable ->
-            "float"
-
-        StringVariable ->
-            "string"
-
-
 showAttributionValue : AttributionValue -> String
 showAttributionValue attributionValue =
     case attributionValue of
@@ -330,20 +355,6 @@ showAllocation allocation =
 showFunctionCall : FunctionCall -> String
 showFunctionCall functionCall =
     functionCall.functionName ++ "(" ++ String.join ", " functionCall.parameters ++ ")"
-
-
-showFunctionDeclaration : FunctionDeclaration -> String
-showFunctionDeclaration functionDeclaration =
-    "def "
-        ++ functionDeclaration.name
-        ++ "("
-        ++ (functionDeclaration.parameters
-                |> List.map showFunctionParameter
-                |> String.join ", "
-           )
-        ++ ")\n{\n"
-        ++ showStatementList functionDeclaration.body
-        ++ "\n}"
 
 
 showFunctionParameter : FunctionParameter -> String

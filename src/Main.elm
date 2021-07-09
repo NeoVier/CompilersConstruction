@@ -16,6 +16,7 @@ import Parser
 import Parser.Program as Program
 import Set
 import Syntax.Program
+import Syntax.Symbol
 
 
 
@@ -29,6 +30,9 @@ port getFile : (Encode.Value -> msg) -> Sub msg
 
 
 port print : String -> Cmd msg
+
+
+port printTable : Encode.Value -> Cmd msg
 
 
 
@@ -100,8 +104,13 @@ update (GotFile fileResult) model =
             case Parser.run Program.program fileContent of
                 Ok validProgram ->
                     ( { model | program = Just validProgram }
-                    , Syntax.Program.show validProgram
-                        |> print
+                    , Cmd.batch
+                        [ Syntax.Program.show validProgram
+                            |> print
+                        , Syntax.Symbol.tableFromProgram validProgram
+                            |> Syntax.Symbol.encodeTable
+                            |> printTable
+                        ]
                     )
 
                 Err err ->

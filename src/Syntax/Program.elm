@@ -21,6 +21,8 @@ type Program
     | FunctionList (List Statement.FunctionDeclaration)
 
 
+{-| Turn a `Program` into a `String`
+-}
 show : Program -> String
 show program =
     case program of

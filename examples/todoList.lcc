@@ -1,0 +1,112 @@
+def main() {
+    int dummy;
+    print "Welcome! This is your personal todo list manager!";
+    string filename;
+    string newline;
+    newline = "\n";
+    filename = "./todo_manager.todo";
+
+    string filecontents;
+    filecontents = read_file(filename);
+    string todolist;
+
+    if (filecontents == null)
+        dummy = printHelp();
+    else {
+        todolist = filecontents;
+        print "Here's what I have for you:";
+        dummy = printlist(todolist);
+    }
+
+    string userInput;
+    for (dummy = 0; dummy == 0; dummy = dummy) {
+        read userInput;
+
+        if (userInput == 0)
+            return;
+        else if (userInput == 1) {
+            print "What would you like to add?";
+            string newItem;
+            read newItem;
+            todolist = todolist + newItem;
+            print newItem + " was added to the list";
+        } else if (userInput == 2) {
+            print "What would you like to remove?";
+            string itemToRemove;
+            read itemToRemove;
+
+            string lines;
+            lines = split(todolist, newline);
+            int linecount;
+            linecount = length(lines);
+            int i;
+            string newlines;
+            newlines = "";
+            for (i = 0; i < linecount; i = i + 1) {
+                if (lines[i] != itemToRemove)
+                    newlines = newlines + "\n" + lines[i];
+            }
+            todolist = newlines;
+            print itemToRemove + " was removed from the list";
+            print "Here's the new list:";
+            dummy = printlist(todolist);
+        } else if (userInput == 3) {
+            print "Here's the entire list:";
+            dummy = printlist(todolist);
+        } else if (userInput == 4) {
+            string itemToEdit;
+            string newValue;
+            string newTodolist;
+
+            print "What item would you like to edit?";
+            read itemToEdit;
+            print "What should the new value be?";
+            read newValue;
+
+            string lines;
+            int linecount;
+            int i;
+
+            lines = split(todolist, newline);
+            linecount = length(lines);
+
+            newTodolist = "";
+            for (i = 0; i < linecount; i = i + 1)
+                if (lines[i] == itemToEdit)
+                    newTodolist = newTodolist + "\n" + newValue;
+                else
+                    newTodolist = newTodolist + "\n" + lines[i];
+            
+            todolist = newTodolist;
+            
+            print "Here's the list after being edited:";
+            dummy = printlist(todolist);
+        } else if (userInput == 5) {
+            dummy = printHelp();
+        }
+    }
+}
+
+def printlist(string todolist) {
+    string lines;
+    int linecount;
+    int i;
+    string newline;
+    newline = "\n";
+
+    lines = split(todolist, newline);
+    linecount = length(lines);
+
+    for (i = 0; i < linecount; i = i + 1)
+        print lines[i];
+}
+
+def printHelp() {
+    print "Here are some of the things you can do:";
+    print "\t0: Quit";
+    print "\t1: Add an item to the list";
+    print "\t2: Remove an item from the list";
+    print "\t3: See everything on the list";
+    print "\t4: Edit an item on the list";
+    print "\t5: Ask for help";
+}

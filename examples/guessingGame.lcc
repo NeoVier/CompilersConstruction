@@ -5,6 +5,8 @@ def main() {
 
     for (i = 0; i == 0; i = i) {
         dummy = printMenu();
+        int x;
+        x = 5;
 
         read userInput;
 

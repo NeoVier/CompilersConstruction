@@ -175,4 +175,29 @@ functionParameter -> variableType variableName
 functionDeclaration -> def variableName\((functionParameter(, functionParameter)*(,)?)?\)
 ```
 
-Os diagramas de transição de cada um desses *tokens* estão em anexo.
+Os diagramas de transição de cada um desses *tokens* estão em anexo, na pasta
+`diagramas`.
+
+## Entrada e Saída
+
+Como entrada, é aceito exatamente um caminho de arquivo, que contém código da
+linguagem CC-2021-1. Este arquivo será lido e seu conteúdo será analisado pelo
+compilador. Caso haja algum erro, será informado o erro e a linha e coluna onde
+o erro ocorreu. Caso não haja nenhum erro, será mostrado o código fonte
+entendido pelo compilador (que deve ser quase igual ao código de entrada, salvo
+espaços em branco e parênteses), além da tabela de símbolos. A tabela de
+símbolos é representada como uma tabela com colunas Index, name, type e
+dimmensions. Como discutido anteriormente, existem 3 tipos de entradas para a
+tabela de símbolos:
+
+- Funções. Name se refere ao nome da função, seu tipo é sempre `function`, e
+suas dimensões são apenas os tipos de argumentos que ela aceita.
+- Parâmetros de funções. Name se refere ao nome do parâmetro, seu tipo é de
+acordo com o que foi declarado, e suas dimensões são sempre vazias.
+- Variáveis. Name se refere ao nome da variável, seu tipo é de acordo com o que
+foi declarado, e suas dimensões são os números dados entre `[` e `]`, como em
+`int x[1][2]`.
+
+O campo `name` da tabela considera o escopo onde a entrada foi encontrada. Ou
+seja, se a variável `x` foi definida dentro da função `func`, seu nome aparecerá
+como `func.x`.

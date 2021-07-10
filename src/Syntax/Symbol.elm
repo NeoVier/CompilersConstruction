@@ -114,6 +114,21 @@ withStatement statement currentName table =
                     )
                     table
 
+        Statement.ForStatement for ->
+            table
+                |> withStatement for.body (currentName ++ [ "for" ])
+
+        Statement.IfStatement if_ ->
+            table
+                |> withStatement if_.body (currentName ++ [ "if" ])
+                |> (case if_.elseBody of
+                        Nothing ->
+                            identity
+
+                        Just elseBody ->
+                            withStatement elseBody (currentName ++ [ "else" ])
+                   )
+
         _ ->
             table
 

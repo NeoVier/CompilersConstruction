@@ -1,2 +1,5 @@
+setup:
+	npm install
+
 run:
-	yarn build && yarn start $(input)
+	npm run build && npm start $(input)

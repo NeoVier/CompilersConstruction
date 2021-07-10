@@ -38,7 +38,7 @@ type Expression
     | WithComparator NumericalExpression Comparator NumericalExpression
 
 
-{-| Represents all the possible boolean `Comparator`s, such as `>` and `>`
+{-| Represents all the possible boolean `Comparator`s, such as `>` and `>=`
 -}
 type Comparator
     = LessThan

@@ -11,7 +11,8 @@ module Parser.Expression exposing
     , variableName
     )
 
-import Parser exposing ((|.), (|=), Parser)
+import CCParser exposing (CCParser)
+import Parser.Advanced as Parser exposing ((|.), (|=))
 import Set
 import Syntax.Expression as Expression
 
@@ -20,36 +21,39 @@ import Syntax.Expression as Expression
 -- EXPRESSION
 
 
-expression : Parser Expression.Expression
+expression : CCParser Expression.Expression
 expression =
     Parser.oneOf
-        [ Parser.succeed Expression.WithComparator
-            |= numericalExpression
-            |. Parser.spaces
-            |= comparator
-            |. Parser.spaces
-            |= numericalExpression
-            |> Parser.backtrackable
-        , Parser.succeed Expression.SingleExpression
-            |= numericalExpression
+        [ Parser.inContext CCParser.ExpressionWithComparator
+            (Parser.succeed Expression.WithComparator
+                |= numericalExpression
+                |. Parser.spaces
+                |= comparator
+                |. Parser.spaces
+                |= numericalExpression
+                |> Parser.backtrackable
+            )
+        , Parser.inContext CCParser.SingleExpression <|
+            Parser.succeed Expression.SingleExpression
+                |= numericalExpression
         ]
 
 
-comparator : Parser Expression.Comparator
+comparator : CCParser Expression.Comparator
 comparator =
     Parser.oneOf
         [ Parser.succeed Expression.LessThanOrEqualTo
-            |. Parser.token "<="
+            |. Parser.token (Parser.Token "<=" CCParser.ExpectingComparator)
         , Parser.succeed Expression.GreatherThanOrEqualTo
-            |. Parser.token ">="
+            |. Parser.token (Parser.Token ">=" CCParser.ExpectingComparator)
         , Parser.succeed Expression.LessThan
-            |. Parser.token "<"
+            |. Parser.token (Parser.Token "<" CCParser.ExpectingComparator)
         , Parser.succeed Expression.GreatherThan
-            |. Parser.token ">"
+            |. Parser.token (Parser.Token ">" CCParser.ExpectingComparator)
         , Parser.succeed Expression.Equals
-            |. Parser.token "=="
+            |. Parser.token (Parser.Token "==" CCParser.ExpectingComparator)
         , Parser.succeed Expression.Different
-            |. Parser.token "!="
+            |. Parser.token (Parser.Token "!=" CCParser.ExpectingComparator)
         ]
 
 
@@ -57,28 +61,31 @@ comparator =
 -- NUMERICAL EXPRESSION
 
 
-numericalExpression : Parser Expression.NumericalExpression
+numericalExpression : CCParser Expression.NumericalExpression
 numericalExpression =
     Parser.oneOf
-        [ Parser.succeed Expression.MultipleNumericalExpressions
-            |= term
-            |. Parser.spaces
-            |= numericalOperator
-            |. Parser.spaces
-            |= Parser.lazy (\_ -> numericalExpression)
-            |> Parser.backtrackable
-        , Parser.succeed Expression.SingleNumericalExpression
-            |= term
+        [ Parser.inContext CCParser.MultipleNumericalExpressions <|
+            (Parser.succeed Expression.MultipleNumericalExpressions
+                |= term
+                |. Parser.spaces
+                |= numericalOperator
+                |. Parser.spaces
+                |= Parser.lazy (\_ -> numericalExpression)
+                |> Parser.backtrackable
+            )
+        , Parser.inContext CCParser.SingleNumericalExpression <|
+            Parser.succeed Expression.SingleNumericalExpression
+                |= term
         ]
 
 
-numericalOperator : Parser Expression.NumericalOperator
+numericalOperator : CCParser Expression.NumericalOperator
 numericalOperator =
     Parser.oneOf
         [ Parser.succeed Expression.Addition
-            |. Parser.token "+"
+            |. Parser.token (Parser.Token "+" CCParser.ExpectingNumericalOperator)
         , Parser.succeed Expression.Subtraction
-            |. Parser.token "-"
+            |. Parser.token (Parser.Token "-" CCParser.ExpectingNumericalOperator)
         ]
 
 
@@ -86,30 +93,33 @@ numericalOperator =
 -- TERM
 
 
-term : Parser Expression.Term
+term : CCParser Expression.Term
 term =
     Parser.oneOf
-        [ Parser.succeed Expression.MultipleTerms
-            |= unaryExpression
-            |. Parser.spaces
-            |= termOperator
-            |. Parser.spaces
-            |= Parser.lazy (\_ -> term)
-            |> Parser.backtrackable
-        , Parser.succeed Expression.SingleTerm
-            |= unaryExpression
+        [ Parser.inContext CCParser.MultipleTerms <|
+            (Parser.succeed Expression.MultipleTerms
+                |= unaryExpression
+                |. Parser.spaces
+                |= termOperator
+                |. Parser.spaces
+                |= Parser.lazy (\_ -> term)
+                |> Parser.backtrackable
+            )
+        , Parser.inContext CCParser.SingleTerm <|
+            Parser.succeed Expression.SingleTerm
+                |= unaryExpression
         ]
 
 
-termOperator : Parser Expression.TermOperator
+termOperator : CCParser Expression.TermOperator
 termOperator =
     Parser.oneOf
         [ Parser.succeed Expression.Multiplication
-            |. Parser.token "*"
+            |. Parser.token (Parser.Token "*" CCParser.ExpectingTermOperator)
         , Parser.succeed Expression.Division
-            |. Parser.token "/"
+            |. Parser.token (Parser.Token "/" CCParser.ExpectingTermOperator)
         , Parser.succeed Expression.Modulo
-            |. Parser.token "%"
+            |. Parser.token (Parser.Token "%" CCParser.ExpectingTermOperator)
         ]
 
 
@@ -117,76 +127,83 @@ termOperator =
 -- UNARY EXPRESSION
 
 
-unaryExpression : Parser Expression.UnaryExpression
+unaryExpression : CCParser Expression.UnaryExpression
 unaryExpression =
-    Parser.succeed Expression.UnaryExpression
-        |= Parser.oneOf
-            [ Parser.succeed (Just Expression.Plus)
-                |. Parser.symbol "+"
-            , Parser.succeed (Just Expression.Minus)
-                |. Parser.symbol "-"
-            , Parser.succeed Nothing
-            ]
-        |= factor
+    Parser.inContext CCParser.UnaryExpression <|
+        Parser.succeed Expression.UnaryExpression
+            |= Parser.oneOf
+                [ Parser.succeed (Just Expression.Plus)
+                    |. Parser.symbol (Parser.Token "+" CCParser.ExpectingSign)
+                , Parser.succeed (Just Expression.Minus)
+                    |. Parser.symbol (Parser.Token "-" CCParser.ExpectingSign)
+                , Parser.succeed Nothing
+                ]
+            |= factor
 
 
 
 -- FACTOR
 
 
-string : Parser String
-string =
-    Parser.succeed ()
-        |. Parser.token "\""
-        |. Parser.loop '"' stringHelp
-        |> Parser.getChompedString
-        -- Remove quotes
-        |> Parser.map (String.dropLeft 1 >> String.dropRight 1)
+string : Maybe CCParser.Problem -> CCParser String
+string maybeProblem =
+    Parser.inContext CCParser.ParsingString <|
+        (Parser.succeed ()
+            |. Parser.token (Parser.Token "\"" (Maybe.withDefault CCParser.ExpectingStartOfString maybeProblem))
+            |. Parser.loop '"' stringHelp
+            |> Parser.getChompedString
+            -- Remove quotes
+            |> Parser.map (String.dropLeft 1 >> String.dropRight 1)
+        )
 
 
-stringHelp : Char -> Parser (Parser.Step Char ())
+stringHelp : Char -> CCParser (Parser.Step Char ())
 stringHelp separator =
     Parser.oneOf
         [ Parser.succeed (Parser.Done ())
-            |. Parser.token (String.fromChar separator)
+            |. Parser.token (Parser.Token (String.fromChar separator) (CCParser.ExpectingCharacter separator))
         , Parser.succeed (Parser.Loop separator)
-            |. Parser.chompIf (\char -> char == '\\')
-            |. Parser.chompIf (\_ -> True)
+            |. Parser.chompIf (\char -> char == '\\') CCParser.ExpectingBackSlash
+            |. Parser.chompIf (\_ -> True) CCParser.ExpectingAnything
         , Parser.succeed (Parser.Loop separator)
             |. Parser.chompIf (\char -> char /= '\\' && char /= separator)
+                (CCParser.ExpectingDifferentThan [ '\\', separator ])
         ]
 
 
-factor : Parser Expression.Factor
+factor : CCParser Expression.Factor
 factor =
-    Parser.oneOf
-        [ Parser.number
-            { int = Just Expression.IntFactor
-            , hex = Nothing
-            , octal = Nothing
-            , binary = Nothing
-            , float = Just Expression.FloatFactor
-            }
-        , string
-            |> Parser.map Expression.StringFactor
-        , Parser.succeed Expression.NullFactor
-            |. Parser.keyword "null"
-        , Parser.succeed Expression.NamedFactor
-            |= variableAccessor
-        , Parser.succeed Expression.ParenthesizedFactor
-            |. Parser.token "("
-            |. Parser.spaces
-            |= Parser.lazy (\_ -> numericalExpression)
-            |. Parser.spaces
-            |. Parser.token ")"
-        ]
+    Parser.inContext CCParser.Factor <|
+        Parser.oneOf
+            [ Parser.number
+                { int = Ok Expression.IntFactor
+                , hex = Err CCParser.ExpectingBase10
+                , octal = Err CCParser.ExpectingBase10
+                , binary = Err CCParser.ExpectingBase10
+                , float = Ok Expression.FloatFactor
+                , invalid = CCParser.ExpectingNumber
+                , expecting = CCParser.ExpectingFactor
+                }
+            , string (Just CCParser.ExpectingFactor)
+                |> Parser.map Expression.StringFactor
+            , Parser.succeed Expression.NullFactor
+                |. Parser.keyword (Parser.Token "null" CCParser.ExpectingFactor)
+            , Parser.succeed Expression.NamedFactor
+                |= variableAccessor
+            , Parser.succeed Expression.ParenthesizedFactor
+                |. Parser.token (Parser.Token "(" CCParser.ExpectingFactor)
+                |. Parser.spaces
+                |= Parser.lazy (\_ -> numericalExpression)
+                |. Parser.spaces
+                |. Parser.token (Parser.Token ")" CCParser.ExpectingCloseParens)
+            ]
 
 
 
 -- VARIABLE ACCESSOR
 
 
-variableName : Parser String
+variableName : CCParser String
 variableName =
     Parser.variable
         { start = Char.isAlpha
@@ -206,22 +223,23 @@ variableName =
                 , "else"
                 , "for"
                 ]
+        , expecting = CCParser.ExpectingVariableName
         }
 
 
-variableAccessor : Parser Expression.VariableAccessor
+variableAccessor : CCParser Expression.VariableAccessor
 variableAccessor =
     Parser.succeed Expression.VariableAccessor
         |= variableName
         |= Parser.sequence
-            { start = ""
-            , separator = ""
-            , end = ""
+            { start = Parser.Token "" CCParser.ExpectingNoStart
+            , separator = Parser.Token "" CCParser.ExpectingNoSeparator
+            , end = Parser.Token "" CCParser.ExpectingNoEnd
             , spaces = Parser.spaces
             , item =
                 Parser.succeed identity
-                    |. Parser.token "["
+                    |. Parser.token (Parser.Token "[" CCParser.ExpectingOpenBracket)
                     |= Parser.lazy (\_ -> numericalExpression)
-                    |. Parser.token "]"
+                    |. Parser.token (Parser.Token "]" CCParser.ExpectingCloseBracket)
             , trailing = Parser.Forbidden
             }

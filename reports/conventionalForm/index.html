@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="./index.js"></script>
+    <title>CONVENTIONAL FORM</title>
+</head>
+
+<body>
+    <div class="container mt-4 mb-2">
+        <h1>ConvCC-2021-1</h1>
+        <p>A seguir é apresentada a Gramática ConvCC-2021-1, onde sequências em
+            maiúsculo e preto representam símbolos não-terminais, enquanto
+            sequências em minúsculo e em vermelho repsentam símbolos terminais.
+        </p>
+        <div id="first-target-container" class="grid grid-cols-3 grid-gap-1 bg-gray p-1 mt-4">
+        </div>
+
+        <div class="mt-4 mb-2">
+            <h1>Recursão à esquerda</h1>
+            <p>A gramática ConvCC-2021-1 não é recursiva à esquerda. Não existe
+                nenhuma produção que, em 1 ou mais passos de derivação, gera uma
+                produção do tipo <code>A → A<span class="text-red">α</span>
+                </code>. Uma boa parte das produções começam produzindo símbolos
+                não-terminais, o que facilita a análise.
+            </p>
+        </div>
+
+        <div class="mt-4 mb-2">
+            <h1>Fatoração à esquerda</h1>
+            <p>Na gramática apresentada acima, existem produções que não estão
+                fatoradas à esquerda. São elas:
+            <ul class="px-10 space-y-2 my-2">
+                <li><code>FUNCLIST</code></li>
+                <li><code>PARAMLIST</code></li>
+                <li><code>ATRIBSTAT</code></li>
+                <li><code>PARAMLISTCALL</code></li>
+                <li><code>IFSTAT</code></li>
+                <li><code>STATELIST</code></li>
+                <li><code>ALLOCEXPRESSION</code></li>
+                <li><code>ALLOCEXPRESSION'</code></li>
+                <li><code>EXPRESSION</code></li>
+            </ul>
+            A seguir é apresentada a gramática fatorada
+            à esquerda:
+            </p>
+
+            <div id="second-target-container" class="grid grid-cols-3 grid-gap-1 bg-gray p-1 mt-4">
+            </div>
+
+            <p class="mt-4">
+                Foram incluidos os símbolos não terminais <code>FUNCLIST'</code>
+                <code>PARAMLIST'</code>, <code>ATRIBSTAT'</code>,
+                <code>PARAMLISTCALL'</code>, <code>IFSTAT'</code>,
+                <code>STATELIST'</code>, <code>ALLOCEXPRESSION''</code>,
+                <code>ALLOCEXPRESSION'''</code>, <code>EXPRESSION'</code> e
+                <code>EXPRESSION''</code>. Além disso, as produções de
+                <code>ALLOCEXPRESSION'</code> foram alteradas.
+            </p>
+        </div>
+
+        <div class="mt-4 mb-2">
+            <h1>LL(1)</h1>
+            <p>Para determinar se a gramática é LL(1), vamos precisar de todos
+                os Firsts e Follows. Assim, construimos uma tabela com os Firsts:
+            </p>
+
+            <div id="firsts-target-container" class="grid grid-cols-3 grid-gap-1 bg-gray p-1 mt-4">
+            </div>
+
+            <p class="mt-4">E uma tabela com os Follows:</p>
+
+            <div id="follows-target-container" class="grid grid-cols-3 grid-gap-1 bg-gray p-1 mt-4">
+            </div>
+
+            <p class="mt-4">Para uma gramática ser LL(1), suas produções do tipo
+                <code>A → α | β</code> devem seguir as seguintes regras:
+            </p>
+
+            <ol class="px-10 mt-4 space-y-2">
+                <li><code>First(α) ∩ First(β) = ∅</code></li>
+                <li>Se <code>β</code> produz <code>ε</code> em 1 ou mais passos
+                    de derivação, então <code>First(α) ∩ Follow(A) = ∅</code>
+                </li>
+                <li>Se <code>α</code> produz <code>ε</code> em 1 ou mais passos
+                    de derivação, então <code>First(β) ∩ Follow(A) = ∅</code>
+                </li>
+            </ol>
+
+            <p class="mt-4 mb-2">Como nossa gramática agora está fatorada à esquerda,
+                sabemos que a regra <code>1</code> já está contemplada, pois o
+                objetivo da fatoração é justamente impedir que um símbolo não
+                terminal não gere duas produções que tenham o mesmo prefixo.
+            </p>
+            <p>Similarmente, as regras <code>2</code> e <code>3</code> estão
+                contempladas pois nossa gramática é livre de recursão à esquerda.
+                Isso ocorre pois, se <code>First(α) ∩ Follow(A) ≠ ∅</code>
+                for verdade, precisamos de uma produção no estilo de
+                <code>A → Aα</code>. Além disso, nossa gramática não possui
+                produções do tipo <code>A → α | β</code> onde α ou β produzam
+                <code>ε</code> em 1 ou mais passos de derivação.
+            </p>
+        </div>
+
+        <div class="mt-4 mb-2 space-y-2">
+            <h1>Implemenação do Analisador Sintático</h1>
+
+            <p>Como a linguagem utilizada é puramente funcional, a implementação
+                do analisador sintático difere dos algoritmos apresentado em
+                aula, de forma que possamos utilizar melhor as vantagens da
+                programação funcional, ao invés de tentar recriar as
+                funcionalidades de linguagens imperiais.
+            </p>
+
+            <p>A análise sintática é realizada juntamente com a análise léxica
+                (uma possibilidade mencionada em aula), e organiza o código
+                fonte em uma árvore (abordagem Top-Down). Ao fazer as análises
+                léxica e sintática ao "mesmo tempo", utilizamos menos recursos e
+                menos tempo, além de tornar o código do compilador bastante
+                legível.
+            </p>
+
+            <p>A representação de cada nodo da àrvore pode ser encontrada nos
+                arquivos <code>src/Syntax/Expression.elm</code> e
+                <code>src/Syntax/Statement.elm</code>, enquanto a raíz da àrvore
+                está em <code>src/Syntax/Program.elm</code>. Vemos que a árvore
+                começa como um único <code>Statement</code> ou com uma lista de
+                funções. A árvore então segue com os nodos de statements e
+                expressions, como descrito no primeiro relatório.
+            </p>
+
+            <p>Como não usamos o algoritmo da tabela de derivação apresentado em
+                aula, não é possível informar em qual linha e coluna da tabela
+                estamos. Porém, ainda conseguimos indicar quais símbolos
+                estávamos esperando, e qual produção estávamos tentando. Para
+                tal, foi usado o módulo avançado da biblioteca de
+                <em>parsing</em> descrita no primeiro relatório, que nos permite
+                maiores detalhes nas descrições dos erros. Esta melhoria
+                resultou no arquivo <code>src/CCParser.elm</code>, que é
+                responsável por representar os contextos e problemas existentes,
+                além de transformar os erros em algo apresentável ao usuário do
+                compilador. Os erros se dão em algo do tipo <em>"Achei um erro!
+                    Aqui é o que eu estava esperando ver, e eu estava tentando ler
+                    esta estrutura"</em>. Por exemplo, se recebemos algo como
+                <code>def printMenu( {}</code>, o analisador nos mostra um erro
+                como <em>"Estava esperando ver um parênteses fechando (`)`), e eu
+                    estava no meio de uma declaração de função (1:1)"</em>, onde
+                <em>(1:1)</em> é a linha e coluna onde a declaração de
+                função começou.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

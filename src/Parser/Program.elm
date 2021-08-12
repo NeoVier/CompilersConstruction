@@ -6,21 +6,22 @@
 
 module Parser.Program exposing (program)
 
-import Parser exposing ((|.), (|=), Parser)
+import CCParser exposing (CCParser)
+import Parser.Advanced as Parser exposing ((|.), (|=))
 import Parser.Statement as Statement
 import Syntax.Program as Program
 
 
-program : Parser Program.Program
+program : CCParser Program.Program
 program =
     Parser.oneOf
         [ Statement.statement
             |> Parser.map Program.SingleStatement
         , Parser.succeed Program.FunctionList
             |= Parser.sequence
-                { start = ""
-                , separator = ""
-                , end = ""
+                { start = Parser.Token "" CCParser.ExpectingNoStart
+                , separator = Parser.Token "" CCParser.ExpectingNoSeparator
+                , end = Parser.Token "" CCParser.ExpectingNoEnd
                 , spaces = Parser.spaces
                 , item = Statement.functionDeclaration
                 , trailing = Parser.Optional

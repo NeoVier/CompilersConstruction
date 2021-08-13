@@ -18,56 +18,49 @@ import Syntax.Statement as Statement
 
 statement : CCParser Statement.Statement
 statement =
-    Parser.oneOf
-        [ Parser.inContext CCParser.VariableDeclaration <|
-            Parser.succeed Statement.VariableDeclaration
+    Parser.inContext CCParser.Statement <|
+        Parser.oneOf
+            [ Parser.succeed Statement.VariableDeclaration
                 |= declaration
                 |. Parser.spaces
                 |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        , Parser.inContext CCParser.AttributionStatement <|
-            Parser.succeed Statement.AttributionStatement
+            , Parser.succeed Statement.AttributionStatement
                 |= attribution
                 |. Parser.spaces
                 |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        , Parser.inContext CCParser.PrintStatement <|
-            Parser.succeed Statement.PrintStatement
-                |. Parser.keyword (Parser.Token "print" (CCParser.ExpectingKeyword "print"))
-                |. Parser.spaces
-                |= Expression.expression
-                |. Parser.spaces
-                |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        , Parser.inContext CCParser.ReadStatement <|
-            Parser.succeed Statement.ReadStatement
-                |. Parser.keyword (Parser.Token "read" (CCParser.ExpectingKeyword "read"))
-                |. Parser.spaces
-                |= Expression.variableAccessor
-                |. Parser.spaces
-                |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-                |. Parser.spaces
-        , Parser.inContext CCParser.ReturnStatement <|
-            Parser.succeed Statement.ReturnStatement
-                |. Parser.keyword (Parser.Token "return" (CCParser.ExpectingKeyword "return"))
-                |. Parser.spaces
-                |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        , Parser.inContext CCParser.IfStatement <|
-            (ifStatement
+            , Parser.inContext CCParser.PrintStatement <|
+                Parser.succeed Statement.PrintStatement
+                    |. Parser.keyword (Parser.Token "print" CCParser.ExpectingStatement)
+                    |. Parser.spaces
+                    |= Expression.expression
+                    |. Parser.spaces
+                    |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+            , Parser.inContext CCParser.ReadStatement <|
+                Parser.succeed Statement.ReadStatement
+                    |. Parser.keyword (Parser.Token "read" CCParser.ExpectingStatement)
+                    |. Parser.spaces
+                    |= Expression.variableAccessor
+                    |. Parser.spaces
+                    |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+                    |. Parser.spaces
+            , Parser.inContext CCParser.ReturnStatement <|
+                Parser.succeed Statement.ReturnStatement
+                    |. Parser.keyword (Parser.Token "return" CCParser.ExpectingStatement)
+                    |. Parser.spaces
+                    |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+            , ifStatement
                 |> Parser.map Statement.IfStatement
-            )
-        , Parser.inContext CCParser.ForStatement <|
-            (forStatement
+            , forStatement
                 |> Parser.map Statement.ForStatement
-            )
-        , Parser.inContext CCParser.StatementList <|
-            (statementList
+            , statementList
                 |> Parser.map Statement.StatementBlock
-            )
-        , Parser.inContext CCParser.BreakStatement <|
-            Parser.succeed Statement.BreakStatement
-                |. Parser.keyword (Parser.Token "break" (CCParser.ExpectingKeyword "break"))
-                |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        , Parser.succeed Statement.Semicolon
-            |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
-        ]
+            , Parser.inContext CCParser.BreakStatement <|
+                Parser.succeed Statement.BreakStatement
+                    |. Parser.keyword (Parser.Token "break" CCParser.ExpectingStatement)
+                    |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+            , Parser.succeed Statement.Semicolon
+                |. Parser.symbol (Parser.Token ";" CCParser.ExpectingStatement)
+            ]
 
 
 
@@ -93,18 +86,20 @@ declaration =
                     |. Parser.token (Parser.Token "]" CCParser.ExpectingCloseBracket)
             , trailing = Parser.Forbidden
             }
+        |> Parser.inContext CCParser.VariableDeclaration
 
 
 variableType : CCParser Statement.VariableType
 variableType =
-    Parser.oneOf
-        [ Parser.succeed Statement.IntVariable
-            |. Parser.keyword (Parser.Token "int" (CCParser.ExpectingKeyword "int"))
-        , Parser.succeed Statement.FloatVariable
-            |. Parser.keyword (Parser.Token "float" (CCParser.ExpectingKeyword "float"))
-        , Parser.succeed Statement.StringVariable
-            |. Parser.keyword (Parser.Token "string" (CCParser.ExpectingKeyword "string"))
-        ]
+    Parser.inContext CCParser.VariableType <|
+        Parser.oneOf
+            [ Parser.succeed Statement.IntVariable
+                |. Parser.keyword (Parser.Token "int" CCParser.ExpectingVariableType)
+            , Parser.succeed Statement.FloatVariable
+                |. Parser.keyword (Parser.Token "float" CCParser.ExpectingVariableType)
+            , Parser.succeed Statement.StringVariable
+                |. Parser.keyword (Parser.Token "string" CCParser.ExpectingVariableType)
+            ]
 
 
 
@@ -113,21 +108,22 @@ variableType =
 
 attribution : CCParser Statement.Attribution
 attribution =
-    Parser.succeed Statement.Attribution
-        |= Expression.variableAccessor
-        |. Parser.spaces
-        |. Parser.token (Parser.Token "=" (CCParser.ExpectingCharacter '='))
-        |. Parser.spaces
-        |= Parser.oneOf
-            [ functionCall
-                |> Parser.map Statement.FunctionCallAttribution
-                |> Parser.backtrackable
-            , Expression.expression
-                |> Parser.map Statement.ExpressionAttribution
-                |> Parser.backtrackable
-            , allocation
-                |> Parser.map Statement.AllocationExpression
-            ]
+    Parser.inContext CCParser.AttributionStatement <|
+        Parser.succeed Statement.Attribution
+            |= Expression.variableAccessor
+            |. Parser.spaces
+            |. Parser.token (Parser.Token "=" (CCParser.ExpectingCharacter '='))
+            |. Parser.spaces
+            |= Parser.oneOf
+                [ functionCall
+                    |> Parser.map Statement.FunctionCallAttribution
+                    |> Parser.backtrackable
+                , Expression.expression
+                    |> Parser.map Statement.ExpressionAttribution
+                    |> Parser.backtrackable
+                , allocation
+                    |> Parser.map Statement.AllocationExpression
+                ]
 
 
 allocation : CCParser Statement.Allocation
@@ -181,7 +177,7 @@ ifStatement : CCParser Statement.If
 ifStatement =
     Parser.inContext CCParser.IfStatement <|
         Parser.succeed Statement.If
-            |. Parser.keyword (Parser.Token "if" (CCParser.ExpectingKeyword "if"))
+            |. Parser.keyword (Parser.Token "if" CCParser.ExpectingIf)
             |. Parser.spaces
             |. Parser.token (Parser.Token "(" CCParser.ExpectingOpenParens)
             |. Parser.spaces
@@ -208,7 +204,7 @@ forStatement : CCParser Statement.For
 forStatement =
     Parser.inContext CCParser.ForStatement <|
         Parser.succeed Statement.For
-            |. Parser.keyword (Parser.Token "for" (CCParser.ExpectingKeyword "for"))
+            |. Parser.keyword (Parser.Token "for" CCParser.ExpectingFor)
             |. Parser.spaces
             |. Parser.token (Parser.Token "(" CCParser.ExpectingOpenParens)
             |. Parser.spaces
@@ -231,7 +227,7 @@ statementList : CCParser Statement.StatementList
 statementList =
     Parser.inContext CCParser.StatementList <|
         Parser.succeed Statement.StatementList
-            |. Parser.token (Parser.Token "{" CCParser.ExpectingOpenCurlies)
+            |. Parser.token (Parser.Token "{" CCParser.ExpectingStatementList)
             |. Parser.spaces
             |= Parser.lazy (\_ -> statement)
             |. Parser.spaces

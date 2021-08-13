@@ -1,3 +1,9 @@
+{- UFSC - CTC - INE5426 Construcao de Compiladores
+   Henrique da Cunha Buss
+   August 2021
+-}
+
+
 module CCParser exposing (CCParser, Context(..), Problem(..), deadEndsToString)
 
 import Parser.Advanced as Parser exposing (Parser)
@@ -29,6 +35,11 @@ type Context
     | SingleNumericalExpression
     | ExpressionWithComparator
     | SingleExpression
+    | Statement
+    | VariableType
+    | VariableName
+    | Expression
+    | NumericalExpression
 
 
 type Problem
@@ -59,6 +70,11 @@ type Problem
     | ExpectingComma
     | ExpectingKeyword String
     | ExpectingFactor
+    | ExpectingStatement
+    | ExpectingIf
+    | ExpectingFor
+    | ExpectingStatementList
+    | ExpectingVariableType
 
 
 removeDuplicateDeadEnds : List (Parser.DeadEnd Context Problem) -> List (Parser.DeadEnd Context Problem)
@@ -80,6 +96,45 @@ removeDuplicateDeadEnds deadEnds =
         )
         []
         deadEnds
+        |> List.filter
+            (\deadEnd ->
+                let
+                    firstContext =
+                        List.head deadEnd.contextStack |> Maybe.map .context
+
+                    insideOfStatement =
+                        List.drop 1 deadEnd.contextStack
+                            |> List.head
+                            |> Maybe.map
+                                (\context ->
+                                    case context.context of
+                                        Statement ->
+                                            True
+
+                                        _ ->
+                                            False
+                                )
+                            |> Maybe.withDefault False
+                in
+                case deadEnd.problem of
+                    ExpectingIf ->
+                        not ((firstContext == Just IfStatement) && insideOfStatement)
+
+                    ExpectingFor ->
+                        not ((firstContext == Just ForStatement) && insideOfStatement)
+
+                    ExpectingStatementList ->
+                        not ((firstContext == Just StatementList) && insideOfStatement)
+
+                    ExpectingVariableType ->
+                        not ((firstContext == Just VariableType) && insideOfStatement)
+
+                    ExpectingVariableName ->
+                        not ((firstContext == Just VariableName) && insideOfStatement)
+
+                    _ ->
+                        True
+            )
 
 
 deadEndsToString : List (Parser.DeadEnd Context Problem) -> String
@@ -92,8 +147,11 @@ deadEndsToString deadEnds =
             if List.length deadEnds_ == 1 then
                 "I got an error!"
 
-            else
+            else if List.length deadEnds_ > 1 then
                 "I got a few errors!"
+
+            else
+                "I got 0 errors, but something went wrong"
     in
     ((errorMessage :: List.map deadEndToString deadEnds_)
         |> String.join "\n\n"
@@ -106,8 +164,8 @@ deadEndToString deadEnd =
     let
         contextStack =
             deadEnd.contextStack
-                |> List.head
-                |> Maybe.map
+                |> List.take 2
+                |> List.map
                     (\context ->
                         contextToString context.context
                             ++ " ("
@@ -116,12 +174,21 @@ deadEndToString deadEnd =
                             ++ String.fromInt context.col
                             ++ ")"
                     )
-                |> Maybe.withDefault ""
+                |> String.join " inside of "
     in
     "I was expecting to see "
         ++ problemToString deadEnd.problem
-        ++ ".\nIf it helps, I was in the middle of looking at "
-        ++ contextStack
+        ++ " on ("
+        ++ String.fromInt deadEnd.row
+        ++ ":"
+        ++ String.fromInt deadEnd.col
+        ++ ").\n"
+        ++ (if List.isEmpty deadEnd.contextStack then
+                ""
+
+            else
+                "If it helps, I was in the middle of looking at " ++ contextStack
+           )
 
 
 problemToString : Problem -> String
@@ -213,6 +280,35 @@ problemToString problem =
         ExpectingFactor ->
             "a factor (this could be a number, a string, `null`, accessing a variable or a parenthesized numerical expression)"
 
+        ExpectingStatement ->
+            "a statement, which could be any of these: \n"
+                ++ ([ "a variable declaration"
+                    , "an attribution statement"
+                    , "a print statement"
+                    , "a read statement"
+                    , "a return statement"
+                    , "an if statement"
+                    , "a for statement"
+                    , "a list of statements"
+                    , "a break statement"
+                    , "a semicolon (`;`)"
+                    ]
+                        |> List.map (\description -> "\t" ++ description)
+                        |> String.join "\n"
+                   )
+
+        ExpectingIf ->
+            "an if statement"
+
+        ExpectingFor ->
+            "a for statement"
+
+        ExpectingStatementList ->
+            "a list of statements"
+
+        ExpectingVariableType ->
+            "a variable type (`int`, `float` or `string`)"
+
 
 contextToString : Context -> String
 contextToString context =
@@ -230,7 +326,7 @@ contextToString context =
             "a for statement"
 
         IfStatement ->
-            "a if statement"
+            "an if statement"
 
         FunctionCall ->
             "a function call"
@@ -279,3 +375,18 @@ contextToString context =
 
         SingleExpression ->
             "an expression"
+
+        Statement ->
+            "a statement"
+
+        VariableType ->
+            "a variable type"
+
+        VariableName ->
+            "a variable name"
+
+        Expression ->
+            "an expression"
+
+        NumericalExpression ->
+            "a numerical expression"

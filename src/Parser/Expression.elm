@@ -23,20 +23,25 @@ import Syntax.Expression as Expression
 
 expression : CCParser Expression.Expression
 expression =
-    Parser.oneOf
-        [ Parser.inContext CCParser.ExpressionWithComparator
-            (Parser.succeed Expression.WithComparator
-                |= numericalExpression
-                |. Parser.spaces
-                |= comparator
-                |. Parser.spaces
-                |= numericalExpression
-                |> Parser.backtrackable
+    Parser.inContext CCParser.Expression <|
+        Parser.succeed
+            (\numExpr maybeRest ->
+                case maybeRest of
+                    Nothing ->
+                        Expression.SingleExpression numExpr
+
+                    Just ( comp, otherNumExpr ) ->
+                        Expression.WithComparator numExpr comp otherNumExpr
             )
-        , Parser.inContext CCParser.SingleExpression <|
-            Parser.succeed Expression.SingleExpression
-                |= numericalExpression
-        ]
+            |= numericalExpression
+            |. Parser.spaces
+            |= Parser.oneOf
+                [ Parser.succeed (\comp numExpr -> Just ( comp, numExpr ))
+                    |= comparator
+                    |. Parser.spaces
+                    |= numericalExpression
+                , Parser.succeed Nothing
+                ]
 
 
 comparator : CCParser Expression.Comparator
@@ -63,20 +68,25 @@ comparator =
 
 numericalExpression : CCParser Expression.NumericalExpression
 numericalExpression =
-    Parser.oneOf
-        [ Parser.inContext CCParser.MultipleNumericalExpressions <|
-            (Parser.succeed Expression.MultipleNumericalExpressions
-                |= term
-                |. Parser.spaces
-                |= numericalOperator
-                |. Parser.spaces
-                |= Parser.lazy (\_ -> numericalExpression)
-                |> Parser.backtrackable
+    Parser.inContext CCParser.NumericalExpression <|
+        Parser.succeed
+            (\term_ maybeRest ->
+                case maybeRest of
+                    Nothing ->
+                        Expression.SingleNumericalExpression term_
+
+                    Just ( operator, numExpr ) ->
+                        Expression.MultipleNumericalExpressions term_ operator numExpr
             )
-        , Parser.inContext CCParser.SingleNumericalExpression <|
-            Parser.succeed Expression.SingleNumericalExpression
-                |= term
-        ]
+            |= term
+            |. Parser.spaces
+            |= Parser.oneOf
+                [ Parser.succeed (\operator numExpr -> Just ( operator, numExpr ))
+                    |= numericalOperator
+                    |. Parser.spaces
+                    |= Parser.lazy (\_ -> numericalExpression)
+                , Parser.succeed Nothing
+                ]
 
 
 numericalOperator : CCParser Expression.NumericalOperator
@@ -130,15 +140,16 @@ termOperator =
 unaryExpression : CCParser Expression.UnaryExpression
 unaryExpression =
     Parser.inContext CCParser.UnaryExpression <|
-        Parser.succeed Expression.UnaryExpression
-            |= Parser.oneOf
-                [ Parser.succeed (Just Expression.Plus)
-                    |. Parser.symbol (Parser.Token "+" CCParser.ExpectingSign)
-                , Parser.succeed (Just Expression.Minus)
-                    |. Parser.symbol (Parser.Token "-" CCParser.ExpectingSign)
-                , Parser.succeed Nothing
-                ]
-            |= factor
+        Parser.oneOf
+            [ Parser.succeed (Expression.UnaryExpression (Just Expression.Plus))
+                |. Parser.symbol (Parser.Token "+" CCParser.ExpectingSign)
+                |= factor
+            , Parser.succeed (Expression.UnaryExpression (Just Expression.Minus))
+                |. Parser.symbol (Parser.Token "-" CCParser.ExpectingSign)
+                |= factor
+            , factor
+                |> Parser.map (Expression.UnaryExpression Nothing)
+            ]
 
 
 
@@ -184,6 +195,7 @@ factor =
                 , invalid = CCParser.ExpectingNumber
                 , expecting = CCParser.ExpectingFactor
                 }
+                |> Parser.backtrackable
             , string (Just CCParser.ExpectingFactor)
                 |> Parser.map Expression.StringFactor
             , Parser.succeed Expression.NullFactor
@@ -205,26 +217,27 @@ factor =
 
 variableName : CCParser String
 variableName =
-    Parser.variable
-        { start = Char.isAlpha
-        , inner = \c -> Char.isAlphaNum c || c == '_'
-        , reserved =
-            Set.fromList
-                [ "def"
-                , "print"
-                , "read"
-                , "return"
-                , "break"
-                , "int"
-                , "float"
-                , "string"
-                , "new"
-                , "if"
-                , "else"
-                , "for"
-                ]
-        , expecting = CCParser.ExpectingVariableName
-        }
+    Parser.inContext CCParser.VariableName <|
+        Parser.variable
+            { start = Char.isAlpha
+            , inner = \c -> Char.isAlphaNum c || c == '_'
+            , reserved =
+                Set.fromList
+                    [ "def"
+                    , "print"
+                    , "read"
+                    , "return"
+                    , "break"
+                    , "int"
+                    , "float"
+                    , "string"
+                    , "new"
+                    , "if"
+                    , "else"
+                    , "for"
+                    ]
+            , expecting = CCParser.ExpectingVariableName
+            }
 
 
 variableAccessor : CCParser Expression.VariableAccessor

@@ -10,6 +10,7 @@ module Generator exposing (generate, getExpressionValue, initStepperModel)
 -}
 
 import Dict exposing (Dict)
+import Result.Extra
 import Syntax.Expression
 import Syntax.Program
 
@@ -35,16 +36,28 @@ generate program =
 type alias StepperModel =
     { temporaryValues : List String
     , lastTemporaryIndex : Int
-    , symbols : Dict String { type_ : String, value : Maybe String }
+    , symbols : Dict String { type_ : SymbolType }
     , currentCode : String
     }
+
+
+type SymbolType
+    = IntType (Maybe Int)
+    | FloatType (Maybe Float)
+    | StringType (Maybe String)
 
 
 initStepperModel : StepperModel
 initStepperModel =
     { temporaryValues = []
     , lastTemporaryIndex = -1
-    , symbols = Dict.empty
+    , symbols =
+        -- TODO - Remove this after testing
+        Dict.fromList
+            [ ( "a", { type_ = IntType (Just 5) } )
+            , ( "b", { type_ = IntType (Just 3) } )
+            , ( "c", { type_ = IntType (Just 8) } )
+            ]
     , currentCode = ""
     }
 
@@ -54,6 +67,22 @@ type FactorValue
     | FloatFactor Float
     | StringFactor String
     | NullFactor
+
+
+factorValueToString : FactorValue -> String
+factorValueToString factorValue =
+    case factorValue of
+        IntFactor intFactor ->
+            String.fromInt intFactor
+
+        FloatFactor floatFactor ->
+            String.fromFloat floatFactor
+
+        StringFactor stringFactor ->
+            stringFactor
+
+        NullFactor ->
+            "null"
 
 
 getFactorValue : Syntax.Expression.Factor -> StepperModel -> Result String FactorValue
@@ -72,15 +101,47 @@ getFactorValue factor stepperModel =
             Ok NullFactor
 
         Syntax.Expression.NamedFactor factorName ->
-            -- TODO - Use accessors
-            Dict.get factorName.name stepperModel.symbols
-                -- TODO - Use symbols information
-                |> Maybe.map (\_ -> IntFactor 0)
-                |> Result.fromMaybe ("Symbol `" ++ factorName.name ++ "` does not have a valid value on the symbols table")
+            let
+                nameWithAccessors : Result String String
+                nameWithAccessors =
+                    factorName.accessors
+                        |> List.map (\accessor -> getNumericalExpressionValue accessor stepperModel)
+                        |> Result.Extra.combine
+                        |> Result.map
+                            (List.map factorValueToString
+                                >> (\accessors -> factorName.name :: accessors)
+                                >> String.join "."
+                            )
+            in
+            case nameWithAccessors of
+                Err error ->
+                    Err error
+
+                Ok validName ->
+                    case Dict.get validName stepperModel.symbols |> Maybe.map .type_ of
+                        Nothing ->
+                            Err ("I couldn't find `" ++ validName ++ "` on the symbols table. Maybe you need to declare it earlier in the code?")
+
+                        Just (IntType maybeInt) ->
+                            maybeInt
+                                |> Maybe.map IntFactor
+                                |> Maybe.withDefault NullFactor
+                                |> Ok
+
+                        Just (FloatType maybeFloat) ->
+                            maybeFloat
+                                |> Maybe.map FloatFactor
+                                |> Maybe.withDefault NullFactor
+                                |> Ok
+
+                        Just (StringType maybeString) ->
+                            maybeString
+                                |> Maybe.map StringFactor
+                                |> Maybe.withDefault NullFactor
+                                |> Ok
 
         Syntax.Expression.ParenthesizedFactor factorValue ->
-            -- TODO - Implement this
-            Err "Implement getFactorValue for parenthesized factor"
+            getNumericalExpressionValue factorValue stepperModel
 
 
 getUnaryExpressionValue : Syntax.Expression.UnaryExpression -> StepperModel -> Result String FactorValue

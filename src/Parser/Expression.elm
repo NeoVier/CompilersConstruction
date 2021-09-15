@@ -49,11 +49,11 @@ comparator =
     Parser.oneOf
         [ Parser.succeed Expression.LessThanOrEqualTo
             |. Parser.token (Parser.Token "<=" CCParser.ExpectingComparator)
-        , Parser.succeed Expression.GreatherThanOrEqualTo
+        , Parser.succeed Expression.GreaterThanOrEqualTo
             |. Parser.token (Parser.Token ">=" CCParser.ExpectingComparator)
         , Parser.succeed Expression.LessThan
             |. Parser.token (Parser.Token "<" CCParser.ExpectingComparator)
-        , Parser.succeed Expression.GreatherThan
+        , Parser.succeed Expression.Greater
             |. Parser.token (Parser.Token ">" CCParser.ExpectingComparator)
         , Parser.succeed Expression.Equals
             |. Parser.token (Parser.Token "==" CCParser.ExpectingComparator)

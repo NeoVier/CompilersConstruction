@@ -42,9 +42,9 @@ type Expression
 -}
 type Comparator
     = LessThan
-    | GreatherThan
+    | Greater
     | LessThanOrEqualTo
-    | GreatherThanOrEqualTo
+    | GreaterThanOrEqualTo
     | Equals
     | Different
 
@@ -305,13 +305,13 @@ showComparator comparator =
         LessThan ->
             "<"
 
-        GreatherThan ->
+        Greater ->
             ">"
 
         LessThanOrEqualTo ->
             "<="
 
-        GreatherThanOrEqualTo ->
+        GreaterThanOrEqualTo ->
             ">="
 
         Equals ->

@@ -28,6 +28,7 @@ declare functions, and more. They mostly build on top of `Expressions`, so we
 can have complex code, built on top of simple code
 -}
 
+import CCParser
 import Syntax.Expression as Expression
 
 
@@ -43,11 +44,11 @@ type Statement
     | AttributionStatement Attribution
     | PrintStatement Expression.Expression
     | ReadStatement Expression.VariableAccessor
-    | ReturnStatement
+    | ReturnStatement CCParser.Range
     | IfStatement If
     | ForStatement For
     | StatementBlock StatementList
-    | BreakStatement
+    | BreakStatement CCParser.Range
     | Semicolon
 
 
@@ -207,7 +208,7 @@ show statement =
         ReadStatement variableAccessor ->
             showReadStatement variableAccessor ++ ";"
 
-        ReturnStatement ->
+        ReturnStatement _ ->
             "return;"
 
         IfStatement if_ ->
@@ -219,7 +220,7 @@ show statement =
         StatementBlock statementList ->
             showStatementList statementList
 
-        BreakStatement ->
+        BreakStatement _ ->
             "break;"
 
         Semicolon ->

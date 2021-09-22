@@ -25,6 +25,10 @@ mathematical operations, compare expressions with each other, and reference
 variables
 -}
 
+import CCParser
+
+
+
 -- EXPRESSION
 
 
@@ -34,8 +38,8 @@ can either be a single [`NumericalExpression`](#NumericalExpression), or two
 function
 -}
 type Expression
-    = SingleExpression NumericalExpression
-    | WithComparator NumericalExpression Comparator NumericalExpression
+    = SingleExpression NumericalExpression CCParser.Range
+    | WithComparator NumericalExpression Comparator NumericalExpression CCParser.Range
 
 
 {-| Represents all the possible boolean `Comparator`s, such as `>` and `>=`
@@ -69,8 +73,8 @@ single `NumericalExpression` child:
 
 -}
 type NumericalExpression
-    = SingleNumericalExpression Term
-    | MultipleNumericalExpressions Term NumericalOperator NumericalExpression
+    = SingleNumericalExpression Term CCParser.Range
+    | MultipleNumericalExpressions Term NumericalOperator NumericalExpression CCParser.Range
 
 
 {-| A `NumericalOperator` describes the lowest-priority operators, such as
@@ -90,8 +94,8 @@ operators, such as `Multiplication` and `Division`. It follows a very similar
 structure to [`NumericalExpression`](#NumericalExpression)
 -}
 type Term
-    = SingleTerm UnaryExpression
-    | MultipleTerms UnaryExpression TermOperator Term
+    = SingleTerm UnaryExpression CCParser.Range
+    | MultipleTerms UnaryExpression TermOperator Term CCParser.Range
 
 
 {-| A `TermOperator` describes the highest-priority binary operators, such as
@@ -111,7 +115,7 @@ type TermOperator
 (such as [`Sign`](#Sign)) to a [`Factor`](#Factor)
 -}
 type UnaryExpression
-    = UnaryExpression (Maybe Sign) Factor
+    = UnaryExpression (Maybe Sign) Factor CCParser.Range
 
 
 {-| This defines which kind of signs we can have in a
@@ -135,7 +139,7 @@ type Factor
     | FloatFactor Float
     | StringFactor String
     | NullFactor
-    | NamedFactor VariableAccessor
+    | NamedFactor VariableAccessor CCParser.Range
     | ParenthesizedFactor NumericalExpression
 
 
@@ -168,10 +172,10 @@ the reverse of parsing the expression.
 show : Expression -> String
 show expression =
     case expression of
-        SingleExpression numericalExpression ->
+        SingleExpression numericalExpression _ ->
             showNumericalExpression numericalExpression
 
-        WithComparator firstExpression comparator secondExpression ->
+        WithComparator firstExpression comparator secondExpression _ ->
             String.join " "
                 [ showNumericalExpression firstExpression
                 , showComparator comparator
@@ -184,10 +188,10 @@ show expression =
 showNumericalExpression : NumericalExpression -> String
 showNumericalExpression numericalExpression =
     case numericalExpression of
-        SingleNumericalExpression term ->
+        SingleNumericalExpression term _ ->
             showTerm term
 
-        MultipleNumericalExpressions firstTerm operator otherExpression ->
+        MultipleNumericalExpressions firstTerm operator otherExpression _ ->
             String.join " "
                 [ "("
                 , showTerm firstTerm
@@ -227,7 +231,7 @@ showFactor factor =
         NullFactor ->
             "null"
 
-        NamedFactor variableAccessor ->
+        NamedFactor variableAccessor _ ->
             viewVariableAccessor variableAccessor
 
         ParenthesizedFactor numericalExpression ->
@@ -244,7 +248,7 @@ viewVariableAccessor accessor =
 
 
 showUnaryExpression : UnaryExpression -> String
-showUnaryExpression (UnaryExpression maybeSign factor) =
+showUnaryExpression (UnaryExpression maybeSign factor _) =
     let
         signString =
             case maybeSign of
@@ -276,10 +280,10 @@ showTermOperator termOperator =
 showTerm : Term -> String
 showTerm term =
     case term of
-        SingleTerm unaryExpression ->
+        SingleTerm unaryExpression _ ->
             showUnaryExpression unaryExpression
 
-        MultipleTerms unaryExpression operator otherTerm ->
+        MultipleTerms unaryExpression operator otherTerm _ ->
             String.join " "
                 [ "("
                 , showUnaryExpression unaryExpression

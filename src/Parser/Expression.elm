@@ -25,14 +25,15 @@ expression : CCParser Expression.Expression
 expression =
     Parser.inContext CCParser.Expression <|
         Parser.succeed
-            (\numExpr maybeRest ->
+            (\start numExpr maybeRest end ->
                 case maybeRest of
                     Nothing ->
-                        Expression.SingleExpression numExpr
+                        Expression.SingleExpression numExpr { start = start, end = end }
 
                     Just ( comp, otherNumExpr ) ->
-                        Expression.WithComparator numExpr comp otherNumExpr
+                        Expression.WithComparator numExpr comp otherNumExpr { start = start, end = end }
             )
+            |= Parser.getPosition
             |= numericalExpression
             |. Parser.spaces
             |= Parser.oneOf
@@ -42,6 +43,7 @@ expression =
                     |= numericalExpression
                 , Parser.succeed Nothing
                 ]
+            |= Parser.getPosition
 
 
 comparator : CCParser Expression.Comparator
@@ -70,14 +72,15 @@ numericalExpression : CCParser Expression.NumericalExpression
 numericalExpression =
     Parser.inContext CCParser.NumericalExpression <|
         Parser.succeed
-            (\term_ maybeRest ->
+            (\start term_ maybeRest end ->
                 case maybeRest of
                     Nothing ->
-                        Expression.SingleNumericalExpression term_
+                        Expression.SingleNumericalExpression term_ { start = start, end = end }
 
                     Just ( operator, numExpr ) ->
-                        Expression.MultipleNumericalExpressions term_ operator numExpr
+                        Expression.MultipleNumericalExpressions term_ operator numExpr { start = start, end = end }
             )
+            |= Parser.getPosition
             |= term
             |. Parser.spaces
             |= Parser.oneOf
@@ -87,6 +90,7 @@ numericalExpression =
                     |= Parser.lazy (\_ -> numericalExpression)
                 , Parser.succeed Nothing
                 ]
+            |= Parser.getPosition
 
 
 numericalOperator : CCParser Expression.NumericalOperator
@@ -107,17 +111,31 @@ term : CCParser Expression.Term
 term =
     Parser.oneOf
         [ Parser.inContext CCParser.MultipleTerms <|
-            (Parser.succeed Expression.MultipleTerms
+            (Parser.succeed
+                (\start unaryExpression_ operator term_ end ->
+                    Expression.MultipleTerms unaryExpression_
+                        operator
+                        term_
+                        { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |= unaryExpression
                 |. Parser.spaces
                 |= termOperator
                 |. Parser.spaces
                 |= Parser.lazy (\_ -> term)
+                |= Parser.getPosition
                 |> Parser.backtrackable
             )
         , Parser.inContext CCParser.SingleTerm <|
-            Parser.succeed Expression.SingleTerm
+            Parser.succeed
+                (\start unaryExpression_ end ->
+                    Expression.SingleTerm unaryExpression_
+                        { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |= unaryExpression
+                |= Parser.getPosition
         ]
 
 
@@ -141,14 +159,36 @@ unaryExpression : CCParser Expression.UnaryExpression
 unaryExpression =
     Parser.inContext CCParser.UnaryExpression <|
         Parser.oneOf
-            [ Parser.succeed (Expression.UnaryExpression (Just Expression.Plus))
+            [ Parser.succeed
+                (\start factor_ end ->
+                    Expression.UnaryExpression (Just Expression.Plus)
+                        factor_
+                        { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |. Parser.symbol (Parser.Token "+" CCParser.ExpectingSign)
                 |= factor
-            , Parser.succeed (Expression.UnaryExpression (Just Expression.Minus))
+                |= Parser.getPosition
+            , Parser.succeed
+                (\start factor_ end ->
+                    Expression.UnaryExpression
+                        (Just Expression.Minus)
+                        factor_
+                        { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |. Parser.symbol (Parser.Token "-" CCParser.ExpectingSign)
                 |= factor
-            , factor
-                |> Parser.map (Expression.UnaryExpression Nothing)
+                |= Parser.getPosition
+            , Parser.succeed
+                (\start factor_ end ->
+                    Expression.UnaryExpression Nothing
+                        factor_
+                        { start = start, end = end }
+                )
+                |= Parser.getPosition
+                |= factor
+                |= Parser.getPosition
             ]
 
 
@@ -200,8 +240,13 @@ factor =
                 |> Parser.map Expression.StringFactor
             , Parser.succeed Expression.NullFactor
                 |. Parser.keyword (Parser.Token "null" CCParser.ExpectingFactor)
-            , Parser.succeed Expression.NamedFactor
+            , Parser.succeed
+                (\start accessor end ->
+                    Expression.NamedFactor accessor { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |= variableAccessor
+                |= Parser.getPosition
             , Parser.succeed Expression.ParenthesizedFactor
                 |. Parser.token (Parser.Token "(" CCParser.ExpectingFactor)
                 |. Parser.spaces

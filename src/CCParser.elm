@@ -4,13 +4,17 @@
 -}
 
 
-module CCParser exposing (CCParser, Context(..), Problem(..), deadEndsToString)
+module CCParser exposing (CCParser, Context(..), Problem(..), Range, deadEndsToString)
 
 import Parser.Advanced as Parser exposing (Parser)
 
 
 type alias CCParser a =
     Parser Context Problem a
+
+
+type alias Range =
+    { start : ( Int, Int ), end : ( Int, Int ) }
 
 
 type Context

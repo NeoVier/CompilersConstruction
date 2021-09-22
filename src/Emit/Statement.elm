@@ -6,6 +6,7 @@
 
 module Emit.Statement exposing (emit, fromIf)
 
+import CCParser
 import Emit.Expression
 import Emit.State as State exposing (State)
 import Syntax.Expression
@@ -27,8 +28,8 @@ emit statement state =
         Syntax.Statement.ReadStatement variableAccessor ->
             fromRead variableAccessor state
 
-        Syntax.Statement.ReturnStatement ->
-            fromReturn state
+        Syntax.Statement.ReturnStatement range ->
+            fromReturn range state
 
         Syntax.Statement.IfStatement if_ ->
             fromIf if_ state
@@ -39,8 +40,8 @@ emit statement state =
         Syntax.Statement.StatementBlock statements ->
             fromBlock statements state
 
-        Syntax.Statement.BreakStatement ->
-            fromBreak state
+        Syntax.Statement.BreakStatement range ->
+            fromBreak range state
 
         Syntax.Statement.Semicolon ->
             fromSemicolon state
@@ -121,8 +122,8 @@ fromRead accessor state =
     State.addLine ("read " ++ accessorString) afterAccessors
 
 
-fromReturn : State -> State
-fromReturn state =
+fromReturn : CCParser.Range -> State -> State
+fromReturn range state =
     case State.currentContext state of
         Just (State.FunctionContext exitLabel) ->
             State.addLineWithLabel
@@ -131,7 +132,11 @@ fromReturn state =
                 state
 
         _ ->
-            State.raiseError state
+            State.raiseError
+                { range = range
+                , message = "The `return` keyword can only be used inside functions! Otherwise, where am I supposed to return to?"
+                }
+                state
 
 
 {-| Given some code like
@@ -272,8 +277,8 @@ fromBlock { firstStatement, otherStatements } state =
         |> State.leaveContext
 
 
-fromBreak : State -> State
-fromBreak state =
+fromBreak : CCParser.Range -> State -> State
+fromBreak range state =
     case State.currentContext state of
         Just (State.ForContext exitLabel) ->
             State.addLineWithLabel
@@ -282,7 +287,11 @@ fromBreak state =
                 state
 
         _ ->
-            State.raiseError state
+            State.raiseError
+                { range = range
+                , message = "The `break` keyword can only be used inside a `for` loop"
+                }
+                state
 
 
 fromSemicolon : State -> State

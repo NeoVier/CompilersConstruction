@@ -44,10 +44,15 @@ statement =
                     |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
                     |. Parser.spaces
             , Parser.inContext CCParser.ReturnStatement <|
-                Parser.succeed Statement.ReturnStatement
+                Parser.succeed
+                    (\start end ->
+                        Statement.ReturnStatement { start = start, end = end }
+                    )
+                    |= Parser.getPosition
                     |. Parser.keyword (Parser.Token "return" CCParser.ExpectingStatement)
                     |. Parser.spaces
                     |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+                    |= Parser.getPosition
             , ifStatement
                 |> Parser.map Statement.IfStatement
             , forStatement
@@ -55,9 +60,11 @@ statement =
             , statementList
                 |> Parser.map Statement.StatementBlock
             , Parser.inContext CCParser.BreakStatement <|
-                Parser.succeed Statement.BreakStatement
+                Parser.succeed (\start end -> Statement.BreakStatement { start = start, end = end })
+                    |= Parser.getPosition
                     |. Parser.keyword (Parser.Token "break" CCParser.ExpectingStatement)
                     |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+                    |= Parser.getPosition
             , Parser.succeed Statement.Semicolon
                 |. Parser.symbol (Parser.Token ";" CCParser.ExpectingStatement)
             ]

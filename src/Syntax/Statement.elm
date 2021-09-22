@@ -40,7 +40,7 @@ import Syntax.Expression as Expression
 of all of them!
 -}
 type Statement
-    = VariableDeclaration Declaration
+    = VariableDeclaration Declaration CCParser.Range
     | AttributionStatement Attribution
     | PrintStatement Expression.Expression
     | ReadStatement Expression.VariableAccessor
@@ -95,6 +95,7 @@ variable
 type alias Attribution =
     { variableAccessor : Expression.VariableAccessor
     , value : AttributionValue
+    , range : CCParser.Range
     }
 
 
@@ -196,7 +197,7 @@ type alias FunctionParameter =
 show : Statement -> String
 show statement =
     case statement of
-        VariableDeclaration declaration ->
+        VariableDeclaration declaration _ ->
             showDeclaration declaration ++ ";"
 
         AttributionStatement attribution ->

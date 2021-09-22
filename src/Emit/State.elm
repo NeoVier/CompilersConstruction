@@ -27,6 +27,7 @@ module Emit.State exposing
     , typeToString
     )
 
+import CCParser
 import Dict exposing (Dict)
 
 
@@ -313,20 +314,32 @@ temporaryVariable index =
     "$temp$" ++ String.fromInt index
 
 
-addVariable : { type_ : VariableType, name : String } -> State -> State
-addVariable { type_, name } state =
+addVariable : CCParser.Range -> { type_ : VariableType, name : String } -> State -> State
+addVariable range { type_, name } state =
     case state of
         Valid state_ ->
-            -- TODO - Accept dimmensions, check context, check if exists
-            Valid
-                { state_
-                    | variables =
-                        Dict.insert (variableNameWithContext name state_.lastContextIndex)
-                            { variableType = type_
-                            , definedInContext = state_.lastContextIndex
-                            }
-                            state_.variables
-                }
+            case
+                Dict.get (variableNameWithContext name state_.lastContextIndex)
+                    state_.variables
+            of
+                Just _ ->
+                    WithError
+                        { range = range
+                        , message =
+                            "You have already declared `{{VARIABLE}}` in this context! Change the name of this definition, or the name of the other definition."
+                                |> String.replace "{{VARIABLE}}" name
+                        }
+
+                Nothing ->
+                    Valid
+                        { state_
+                            | variables =
+                                Dict.insert (variableNameWithContext name state_.lastContextIndex)
+                                    { variableType = type_
+                                    , definedInContext = state_.lastContextIndex
+                                    }
+                                    state_.variables
+                        }
 
         WithError err ->
             WithError err
@@ -405,7 +418,7 @@ areSameType firstVar secondVar state =
                 ( Just ( _, firstType ), Just ( _, secondType ) ) ->
                     (firstType.variableType == NullVariable)
                         || (secondType.variableType == NullVariable)
-                        || (firstType == secondType)
+                        || (firstType.variableType == secondType.variableType)
 
                 _ ->
                     False

@@ -11,10 +11,6 @@ import List exposing (range)
 import Syntax.Expression
 
 
-
--- TODO - Set correct types
-
-
 emit : Syntax.Expression.Expression -> State -> State
 emit expression state =
     case expression of
@@ -91,7 +87,6 @@ emit expression state =
 fromVariableAccessor : Syntax.Expression.VariableAccessor -> State -> ( State, String )
 fromVariableAccessor variableAccessor state =
     let
-        -- TODO - Check dimmensions
         ( afterAccessors, accessorVariables ) =
             List.foldl
                 (\currAccessor ( currState, currVariables ) ->
@@ -403,6 +398,30 @@ fromFactor factor state =
                         afterFirstExpression : State
                         afterFirstExpression =
                             fromNumericalExpression first state
+                                |> (\newState ->
+                                        case
+                                            State.lastTemporaryVariable newState
+                                                |> State.getVariableType newState
+                                        of
+                                            Just State.IntVariable ->
+                                                newState
+
+                                            Just otherType ->
+                                                State.raiseError
+                                                    { range = range
+                                                    , message =
+                                                        "Tried using a value of type {{TYPE}} to get an index. Indexes must be of type Int!"
+                                                            |> String.replace "{{TYPE}}" (State.typeToString otherType)
+                                                    }
+                                                    newState
+
+                                            Nothing ->
+                                                State.raiseError
+                                                    { range = range
+                                                    , message = "Somehow I couldn't figure out what is the type of the value of the index."
+                                                    }
+                                                    newState
+                                   )
 
                         attributionAfterFirstExpression : String
                         attributionAfterFirstExpression =
@@ -412,33 +431,71 @@ fromFactor factor state =
 
                         afterFirst : State
                         afterFirst =
-                            -- TODO - Check types
-                            State.addTemporaryVariable
-                                { type_ = State.InvalidType, attribution = attributionAfterFirstExpression }
-                                afterFirstExpression
-
-                        afterRest : State
-                        afterRest =
-                            List.foldl
-                                (\currAccessor currState ->
-                                    let
-                                        afterExpression : State
-                                        afterExpression =
-                                            fromNumericalExpression currAccessor currState
-
-                                        attribution =
-                                            "{{LAST_TEMP}}[{{NUMEXPR}}]"
-                                                |> String.replace "{{LAST_TEMP}}" (State.lastTemporaryVariable currState)
-                                                |> String.replace "{{NUMEXPR}}" (State.lastTemporaryVariable afterExpression)
-                                    in
+                            case State.getVariableType afterFirstExpression accessors.name of
+                                Just type_ ->
                                     State.addTemporaryVariable
-                                        { type_ = State.InvalidType, attribution = attribution }
-                                        afterExpression
-                                )
-                                afterFirst
-                                rest
+                                        { type_ = type_, attribution = attributionAfterFirstExpression }
+                                        afterFirstExpression
+
+                                Nothing ->
+                                    State.raiseError
+                                        { range = range
+                                        , message = "Somehow I couldn't figure out the types related to this."
+                                        }
+                                        afterFirstExpression
                     in
-                    ComplexFactor afterRest
+                    List.foldl
+                        (\currAccessor currState ->
+                            let
+                                afterExpression : State
+                                afterExpression =
+                                    fromNumericalExpression currAccessor currState
+                                        |> (\newState ->
+                                                case
+                                                    State.lastTemporaryVariable newState
+                                                        |> State.getVariableType newState
+                                                of
+                                                    Just State.IntVariable ->
+                                                        newState
+
+                                                    Just otherType ->
+                                                        State.raiseError
+                                                            { range = range
+                                                            , message =
+                                                                "Tried using a value of type {{TYPE}} to get an index. Indexes must be of type Int!"
+                                                                    |> String.replace "{{TYPE}}" (State.typeToString otherType)
+                                                            }
+                                                            newState
+
+                                                    Nothing ->
+                                                        State.raiseError
+                                                            { range = range
+                                                            , message = "Somehow I couldn't figure out what is the type of the value of the index."
+                                                            }
+                                                            newState
+                                           )
+
+                                attribution =
+                                    "{{LAST_TEMP}}[{{NUMEXPR}}]"
+                                        |> String.replace "{{LAST_TEMP}}" (State.lastTemporaryVariable currState)
+                                        |> String.replace "{{NUMEXPR}}" (State.lastTemporaryVariable afterExpression)
+                            in
+                            case State.getVariableType afterExpression accessors.name of
+                                Just type_ ->
+                                    State.addTemporaryVariable
+                                        { type_ = type_, attribution = attribution }
+                                        afterExpression
+
+                                Nothing ->
+                                    State.raiseError
+                                        { range = range
+                                        , message = "Somehow I couldn't figure out the types related to this."
+                                        }
+                                        afterExpression
+                        )
+                        afterFirst
+                        rest
+                        |> ComplexFactor
 
         Syntax.Expression.ParenthesizedFactor expression ->
             fromNumericalExpression expression state

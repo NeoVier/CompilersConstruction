@@ -16,8 +16,8 @@ import Syntax.Statement
 emit : Syntax.Statement.Statement -> State -> State
 emit statement state =
     case statement of
-        Syntax.Statement.VariableDeclaration declaration ->
-            fromDeclaration declaration state
+        Syntax.Statement.VariableDeclaration declaration range ->
+            fromDeclaration range declaration state
 
         Syntax.Statement.AttributionStatement attribution ->
             fromAttribution attribution state
@@ -47,8 +47,8 @@ emit statement state =
             fromSemicolon state
 
 
-fromDeclaration : Syntax.Statement.Declaration -> State -> State
-fromDeclaration declaration state =
+fromDeclaration : CCParser.Range -> Syntax.Statement.Declaration -> State -> State
+fromDeclaration range declaration state =
     let
         stateType =
             case declaration.type_ of
@@ -61,7 +61,7 @@ fromDeclaration declaration state =
                 Syntax.Statement.StringVariable ->
                     State.StringVariable
     in
-    State.addVariable { type_ = stateType, name = declaration.name } state
+    State.addVariable range { type_ = stateType, name = declaration.name } state
 
 
 fromAttribution : Syntax.Statement.Attribution -> State -> State
@@ -77,7 +77,34 @@ fromAttribution attribution state =
                         state_ =
                             Emit.Expression.emit expression afterAccessors
                     in
-                    ( state_, State.lastTemporaryVariable state_ )
+                    if
+                        State.areSameType (State.lastTemporaryVariable state_)
+                            attribution.variableAccessor.name
+                            state_
+                    then
+                        ( state_, State.lastTemporaryVariable state_ )
+
+                    else
+                        ( State.raiseError
+                            { range = attribution.range
+                            , message =
+                                "Tried putting a {{EXPR_TYPE}} into `{{VARIABLE}}`, but `{{VARIABLE}}` is of type {{VARIABLE_TYPE}}"
+                                    |> String.replace "{{EXPR_TYPE}}"
+                                        (State.lastTemporaryVariable state_
+                                            |> State.getVariableType state_
+                                            |> Maybe.map State.typeToString
+                                            |> Maybe.withDefault "unknown type"
+                                        )
+                                    |> String.replace "{{VARIABLE}}" accessorString
+                                    |> String.replace "{{VARIABLE_TYPE}}"
+                                        (State.getVariableType state_ attribution.variableAccessor.name
+                                            |> Maybe.map State.typeToString
+                                            |> Maybe.withDefault "unknown type"
+                                        )
+                            }
+                            state_
+                        , State.lastTemporaryVariable state_
+                        )
 
                 Syntax.Statement.AllocationExpression _ ->
                     Debug.todo "Implement allocation expression"

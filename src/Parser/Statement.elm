@@ -20,10 +20,15 @@ statement : CCParser Statement.Statement
 statement =
     Parser.inContext CCParser.Statement <|
         Parser.oneOf
-            [ Parser.succeed Statement.VariableDeclaration
+            [ Parser.succeed
+                (\start declaration_ end ->
+                    Statement.VariableDeclaration declaration_ { start = start, end = end }
+                )
+                |= Parser.getPosition
                 |= declaration
                 |. Parser.spaces
                 |. Parser.symbol (Parser.Token ";" (CCParser.ExpectingCharacter ';'))
+                |= Parser.getPosition
             , Parser.succeed Statement.AttributionStatement
                 |= attribution
                 |. Parser.spaces
@@ -116,7 +121,11 @@ variableType =
 attribution : CCParser Statement.Attribution
 attribution =
     Parser.inContext CCParser.AttributionStatement <|
-        Parser.succeed Statement.Attribution
+        Parser.succeed
+            (\start accessor value end ->
+                Statement.Attribution accessor value { start = start, end = end }
+            )
+            |= Parser.getPosition
             |= Expression.variableAccessor
             |. Parser.spaces
             |. Parser.token (Parser.Token "=" (CCParser.ExpectingCharacter '='))
@@ -131,6 +140,7 @@ attribution =
                 , allocation
                     |> Parser.map Statement.AllocationExpression
                 ]
+            |= Parser.getPosition
 
 
 allocation : CCParser Statement.Allocation

@@ -4,10 +4,14 @@
 -}
 
 
-module Emit.Expression exposing (emit)
+module Emit.Expression exposing (emit, fromVariableAccessor)
 
-import Emit.State exposing (State, temporaryVariable)
+import Emit.State as State exposing (State)
 import Syntax.Expression
+
+
+
+-- TODO - Set correct types
 
 
 emit : Syntax.Expression.Expression -> State -> State
@@ -20,9 +24,6 @@ emit expression state =
             let
                 afterFirst =
                     fromNumericalExpression firstExpression state
-
-                firstLastVariableIndex =
-                    afterFirst.lastTemporaryIndex
 
                 afterSecond =
                     fromNumericalExpression secondExpression afterFirst
@@ -47,17 +48,43 @@ emit expression state =
                         Syntax.Expression.Different ->
                             "!="
 
-                newCode =
-                    "{{TEMP}} = {{FIRST}} {{COMPARATOR}} {{SECOND}}"
-                        |> String.replace "{{TEMP}}" (temporaryVariable (afterSecond.lastTemporaryIndex + 1))
-                        |> String.replace "{{FIRST}}" (temporaryVariable firstLastVariableIndex)
+                attribution =
+                    "{{FIRST}} {{COMPARATOR}} {{SECOND}}"
+                        |> String.replace "{{FIRST}}" (State.lastTemporaryVariable afterFirst)
                         |> String.replace "{{COMPARATOR}}" comparatorString
-                        |> String.replace "{{SECOND}}" (temporaryVariable afterSecond.lastTemporaryIndex)
+                        |> String.replace "{{SECOND}}" (State.lastTemporaryVariable afterSecond)
             in
-            { afterSecond
-                | code = newCode :: afterSecond.code
-                , lastTemporaryIndex = afterSecond.lastTemporaryIndex + 1
-            }
+            State.addTemporaryVariable
+                { type_ = State.InvalidType
+                , attribution = attribution
+                }
+                afterSecond
+
+
+fromVariableAccessor : Syntax.Expression.VariableAccessor -> State -> ( State, String )
+fromVariableAccessor variableAccessor state =
+    let
+        ( afterAccessors, accessorVariables ) =
+            List.foldl
+                (\currAccessor ( currState, currVariables ) ->
+                    let
+                        afterAccessor =
+                            fromNumericalExpression currAccessor currState
+                    in
+                    ( afterAccessor
+                    , State.lastTemporaryVariable afterAccessor :: currVariables
+                    )
+                )
+                ( state, [] )
+                variableAccessor.accessors
+
+        accessorsString =
+            accessorVariables
+                |> List.reverse
+                |> List.map (\accessor -> "[" ++ accessor ++ "]")
+                |> String.concat
+    in
+    ( afterAccessors, variableAccessor.name ++ accessorsString )
 
 
 fromNumericalExpression : Syntax.Expression.NumericalExpression -> State -> State
@@ -71,9 +98,6 @@ fromNumericalExpression numericalExpression state =
                 afterTerm =
                     fromTerm term state
 
-                termLastVariableIndex =
-                    afterTerm.lastTemporaryIndex
-
                 afterOtherExpression =
                     fromNumericalExpression otherExpression afterTerm
 
@@ -85,17 +109,15 @@ fromNumericalExpression numericalExpression state =
                         Syntax.Expression.Subtraction ->
                             "-"
 
-                newCode =
-                    "{{TEMP}} = {{TERM}} {{OPERATOR}} {{NUMEXPR}}"
-                        |> String.replace "{{TEMP}}" (temporaryVariable (afterOtherExpression.lastTemporaryIndex + 1))
-                        |> String.replace "{{TERM}}" (temporaryVariable termLastVariableIndex)
+                attribution =
+                    "{{TERM}} {{OPERATOR}} {{NUMEXPR}}"
+                        |> String.replace "{{TERM}}" (State.lastTemporaryVariable afterTerm)
                         |> String.replace "{{OPERATOR}}" operatorString
-                        |> String.replace "{{NUMEXPR}}" (temporaryVariable afterOtherExpression.lastTemporaryIndex)
+                        |> String.replace "{{NUMEXPR}}" (State.lastTemporaryVariable afterOtherExpression)
             in
-            { afterOtherExpression
-                | code = newCode :: afterOtherExpression.code
-                , lastTemporaryIndex = afterOtherExpression.lastTemporaryIndex + 1
-            }
+            State.addTemporaryVariable
+                { type_ = State.InvalidType, attribution = attribution }
+                afterOtherExpression
 
 
 fromTerm : Syntax.Expression.Term -> State -> State
@@ -108,9 +130,6 @@ fromTerm term state =
             let
                 afterUnaryExpression =
                     fromUnaryExpression unaryExpression state
-
-                unaryExpressionLastVariableIndex =
-                    afterUnaryExpression.lastTemporaryIndex
 
                 afterOtherTerm =
                     fromTerm otherTerm afterUnaryExpression
@@ -126,17 +145,15 @@ fromTerm term state =
                         Syntax.Expression.Modulo ->
                             "%"
 
-                newCode =
-                    "{{TEMP}} = {{UNARYEXPR}} {{OPERATOR}} {{TERM}}"
-                        |> String.replace "{{TEMP}}" (temporaryVariable (afterOtherTerm.lastTemporaryIndex + 1))
-                        |> String.replace "{{UNARYEXPR}}" (temporaryVariable unaryExpressionLastVariableIndex)
+                attribution =
+                    "{{UNARYEXPR}} {{OPERATOR}} {{TERM}}"
+                        |> String.replace "{{UNARYEXPR}}" (State.lastTemporaryVariable afterUnaryExpression)
                         |> String.replace "{{OPERATOR}}" operatorString
-                        |> String.replace "{{TERM}}" (temporaryVariable afterOtherTerm.lastTemporaryIndex)
+                        |> String.replace "{{TERM}}" (State.lastTemporaryVariable afterOtherTerm)
             in
-            { afterOtherTerm
-                | code = newCode :: afterOtherTerm.code
-                , lastTemporaryIndex = afterOtherTerm.lastTemporaryIndex + 1
-            }
+            State.addTemporaryVariable
+                { type_ = State.InvalidType, attribution = attribution }
+                afterOtherTerm
 
 
 fromUnaryExpression : Syntax.Expression.UnaryExpression -> State -> State
@@ -144,10 +161,9 @@ fromUnaryExpression (Syntax.Expression.UnaryExpression maybeSign factor) state =
     case fromFactor factor state of
         SimpleFactor factorCode ->
             let
-                newCode : Bool -> String
-                newCode addMinusSign =
-                    "{{TEMP}} = {{MINUS_SIGN}}{{FACTOR_CODE}}"
-                        |> String.replace "{{TEMP}}" (temporaryVariable (state.lastTemporaryIndex + 1))
+                attribution : Bool -> String
+                attribution addMinusSign =
+                    "{{MINUS_SIGN}}{{FACTOR_CODE}}"
                         |> String.replace "{{MINUS_SIGN}}"
                             (if addMinusSign then
                                 "-1 * "
@@ -156,13 +172,6 @@ fromUnaryExpression (Syntax.Expression.UnaryExpression maybeSign factor) state =
                                 ""
                             )
                         |> String.replace "{{FACTOR_CODE}}" factorCode
-
-                newState : Bool -> State
-                newState addMinusSign =
-                    { state
-                        | code = newCode addMinusSign :: state.code
-                        , lastTemporaryIndex = state.lastTemporaryIndex + 1
-                    }
 
                 isMinus =
                     case maybeSign of
@@ -175,7 +184,9 @@ fromUnaryExpression (Syntax.Expression.UnaryExpression maybeSign factor) state =
                         Just Syntax.Expression.Minus ->
                             True
             in
-            newState isMinus
+            State.addTemporaryVariable
+                { type_ = State.InvalidType, attribution = attribution isMinus }
+                state
 
         ComplexFactor afterFactor ->
             case maybeSign of
@@ -187,15 +198,13 @@ fromUnaryExpression (Syntax.Expression.UnaryExpression maybeSign factor) state =
 
                 Just Syntax.Expression.Minus ->
                     let
-                        newCode =
-                            "{{TEMP}} = -1 * {{FACTOR}}"
-                                |> String.replace "{{TEMP}}" (temporaryVariable (afterFactor.lastTemporaryIndex + 1))
-                                |> String.replace "{{FACTOR}}" (temporaryVariable afterFactor.lastTemporaryIndex)
+                        attribution =
+                            "-1 * {{FACTOR}}"
+                                |> String.replace "{{FACTOR}}" (State.lastTemporaryVariable afterFactor)
                     in
-                    { afterFactor
-                        | code = newCode :: afterFactor.code
-                        , lastTemporaryIndex = afterFactor.lastTemporaryIndex + 1
-                    }
+                    State.addTemporaryVariable
+                        { type_ = State.InvalidType, attribution = attribution }
+                        afterFactor
 
 
 type FactorResult
@@ -221,16 +230,9 @@ fromFactor factor state =
         Syntax.Expression.NamedFactor accessors ->
             case accessors.accessors of
                 [] ->
-                    let
-                        newCode =
-                            "{{TEMP}} = {{NAME}}"
-                                |> String.replace "{{TEMP}}" (temporaryVariable (state.lastTemporaryIndex + 1))
-                                |> String.replace "{{NAME}}" accessors.name
-                    in
-                    { state
-                        | code = newCode :: state.code
-                        , lastTemporaryIndex = state.lastTemporaryIndex + 1
-                    }
+                    state
+                        |> State.addTemporaryVariable
+                            { type_ = State.InvalidType, attribution = accessors.name }
                         |> ComplexFactor
 
                 first :: rest ->
@@ -239,19 +241,17 @@ fromFactor factor state =
                         afterFirstExpression =
                             fromNumericalExpression first state
 
-                        newCodeAfterFirstExpression : String
-                        newCodeAfterFirstExpression =
-                            "{{TEMP}} = {{NAME}}[{{NUMEXPR}}]"
-                                |> String.replace "{{TEMP}}" (temporaryVariable (afterFirstExpression.lastTemporaryIndex + 1))
+                        attributionAfterFirstExpression : String
+                        attributionAfterFirstExpression =
+                            "{{NAME}}[{{NUMEXPR}}]"
                                 |> String.replace "{{NAME}}" accessors.name
-                                |> String.replace "{{NUMEXPR}}" (temporaryVariable afterFirstExpression.lastTemporaryIndex)
+                                |> String.replace "{{NUMEXPR}}" (State.lastTemporaryVariable afterFirstExpression)
 
                         afterFirst : State
                         afterFirst =
-                            { afterFirstExpression
-                                | code = newCodeAfterFirstExpression :: afterFirstExpression.code
-                                , lastTemporaryIndex = afterFirstExpression.lastTemporaryIndex + 1
-                            }
+                            State.addTemporaryVariable
+                                { type_ = State.InvalidType, attribution = attributionAfterFirstExpression }
+                                afterFirstExpression
 
                         afterRest : State
                         afterRest =
@@ -262,16 +262,14 @@ fromFactor factor state =
                                         afterExpression =
                                             fromNumericalExpression currAccessor currState
 
-                                        newCode =
-                                            "{{TEMP}} = {{LAST_TEMP}}[{{NUMEXPR}}]"
-                                                |> String.replace "{{TEMP}}" (temporaryVariable (afterExpression.lastTemporaryIndex + 1))
-                                                |> String.replace "{{LAST_TEMP}}" (temporaryVariable currState.lastTemporaryIndex)
-                                                |> String.replace "{{NUMEXPR}}" (temporaryVariable afterExpression.lastTemporaryIndex)
+                                        attribution =
+                                            "{{LAST_TEMP}}[{{NUMEXPR}}]"
+                                                |> String.replace "{{LAST_TEMP}}" (State.lastTemporaryVariable currState)
+                                                |> String.replace "{{NUMEXPR}}" (State.lastTemporaryVariable afterExpression)
                                     in
-                                    { afterExpression
-                                        | code = newCode :: afterExpression.code
-                                        , lastTemporaryIndex = afterExpression.lastTemporaryIndex + 1
-                                    }
+                                    State.addTemporaryVariable
+                                        { type_ = State.InvalidType, attribution = attribution }
+                                        afterExpression
                                 )
                                 afterFirst
                                 rest

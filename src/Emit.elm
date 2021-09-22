@@ -24,6 +24,4 @@ emit : Syntax.Expression.Expression -> String
 emit expression =
     Emit.State.initialState
         |> Emit.Expression.emit expression
-        |> .code
-        |> List.reverse
-        |> String.join "\n"
+        |> Emit.State.code

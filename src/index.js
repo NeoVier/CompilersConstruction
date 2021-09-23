@@ -31,3 +31,14 @@ main.ports.requestFile.subscribe((filename) => {
         main.ports.getFile.send({ fileContents });
     });
 });
+
+main.ports.writeToFilePort.subscribe(({ filename, contents }) => {
+    fs.writeFile(filename, contents, 'utf8', (err) => {
+        if (err) {
+            console.log('Something went wrong when writing to file')
+            console.error(err)
+        } else {
+            console.log(`✓ Intermediary code written to ${filename}`)
+        }
+    })
+})

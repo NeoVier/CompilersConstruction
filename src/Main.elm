@@ -37,6 +37,18 @@ port print : String -> Cmd msg
 port printTable : Encode.Value -> Cmd msg
 
 
+port writeToFilePort : Encode.Value -> Cmd msg
+
+
+writeToFile : { fileName : String, contents : String } -> Cmd msg
+writeToFile { fileName, contents } =
+    Encode.object
+        [ ( "filename", Encode.string fileName )
+        , ( "contents", Encode.string contents )
+        ]
+        |> writeToFilePort
+
+
 
 -- MAIN
 
@@ -115,11 +127,11 @@ update (GotFile fileResult) model =
                                 [ Syntax.Symbol.tableFromProgram validProgram
                                     |> Syntax.Symbol.encodeTable
                                     |> printTable
+                                , writeToFile { fileName = "./test.convcc", contents = validCode }
                                 , [ "✓ All arithmetic expressions are valid"
                                   , "✓ All variable declarations are valid"
                                   , "✓ Every `break` statement is inside a `for` loop"
                                   , "✓ Every `return` statement is inside a function definition"
-                                  , "✓ Intermediary code written to {{FILE_NAME}}"
                                   ]
                                     |> String.join "\n"
                                     |> print

@@ -1,33 +1,3 @@
-def main() {
-    int userInput;
-    int i;
-    int dummy;
-
-    for (i = 0; i == 0; i = i) {
-        dummy = printMenu();
-        int x;
-        x = 5;
-
-        read userInput;
-
-        if (userInput == 0)
-            break;
-        else if (userInput == 1)
-            dummy = guessingGame();
-        else if (userInput == 2)
-            dummy = calculator();
-        else if (userInput == 3) {
-            int fibonacciLength;
-
-            print "How many fibonacci numbers do you want?";
-            read fibonacciLength;
-            dummy = fibonacci(fibonacciLength);
-        }
-        else
-            print "Invalid choice, please pick a valid one.";
-    }
-}
-
 def printMenu() {
     print "Here are your choices:";
     print "\t0: Quit";
@@ -64,13 +34,14 @@ def guessingGame() {
 }
 
 def calculator() {
-    int firstOperand;
+    float firstOperand;
     string operation;
-    int secondOperand;
+    float secondOperand;
     float result;
 
     print "I am a calculator! Give me two numbers and an operation and I'll give you a result!";
 
+    int i;
     for (i = 0; i == 0; i = i) {
         print "Give me the first operand";
         read firstOperand;
@@ -92,7 +63,7 @@ def calculator() {
         else if (operation == "modulo")
             result = firstOperand % secondOperand;
         else
-            result = -1;
+            result = -1.0;
 
         print result;
     }
@@ -113,5 +84,35 @@ def fibonacci(int n) {
 
         firstNumber = secondNumber;
         secondNumber = currentNumber;
+    }
+}
+
+def main() {
+    int userInput;
+    int i;
+    int dummy;
+
+    for (i = 0; i == 0; i = i) {
+        dummy = printMenu();
+        int x;
+        x = 5;
+
+        read userInput;
+
+        if (userInput == 0)
+            break;
+        else if (userInput == 1)
+            dummy = guessingGame();
+        else if (userInput == 2)
+            dummy = calculator();
+        else if (userInput == 3) {
+            int fibonacciLength;
+
+            print "How many fibonacci numbers do you want?";
+            read fibonacciLength;
+            dummy = fibonacci(fibonacciLength);
+        }
+        else
+            print "Invalid choice, please pick a valid one.";
     }
 }

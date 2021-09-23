@@ -88,13 +88,14 @@ raiseError error state =
 -- CODE MANIPULATION
 
 
-code : State -> String
+code : State -> Result String String
 code state =
     case state of
         Valid state_ ->
             state_.code
                 |> List.reverse
                 |> String.join "\n"
+                |> Ok
 
         WithError error ->
             let
@@ -105,6 +106,7 @@ code state =
                 |> String.replace "{{START}}" (showLineCol error.range.start)
                 |> String.replace "{{END}}" (showLineCol error.range.end)
                 |> String.replace "{{MESSAGE}}" error.message
+                |> Err
 
 
 addLine : String -> State -> State

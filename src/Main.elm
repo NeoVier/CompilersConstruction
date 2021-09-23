@@ -11,6 +11,8 @@ requesting data from JS, and showing the output of our program
 -}
 
 import CCParser
+import Emit.Program
+import Emit.State
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Parser.Advanced as Parser
@@ -103,15 +105,29 @@ update (GotFile fileResult) model =
         Ok fileContent ->
             case Parser.run Program.program fileContent of
                 Ok validProgram ->
-                    ( { model | program = Just validProgram }
-                    , Cmd.batch
-                        [ Syntax.Program.show validProgram
-                            |> print
-                        , Syntax.Symbol.tableFromProgram validProgram
-                            |> Syntax.Symbol.encodeTable
-                            |> printTable
-                        ]
-                    )
+                    case
+                        Emit.Program.emit validProgram Emit.State.initialState
+                            |> Emit.State.code
+                    of
+                        Ok validCode ->
+                            ( model
+                            , Cmd.batch
+                                [ Syntax.Symbol.tableFromProgram validProgram
+                                    |> Syntax.Symbol.encodeTable
+                                    |> printTable
+                                , [ "✓ All arithmetic expressions are valid"
+                                  , "✓ All variable declarations are valid"
+                                  , "✓ Every `break` statement is inside a `for` loop"
+                                  , "✓ Every `return` statement is inside a function definition"
+                                  , "✓ Intermediary code written to {{FILE_NAME}}"
+                                  ]
+                                    |> String.join "\n"
+                                    |> print
+                                ]
+                            )
+
+                        Err err ->
+                            ( model, print err )
 
                 Err err ->
                     ( model

@@ -106,8 +106,34 @@ fromAttribution attribution state =
                         , State.lastTemporaryVariable state_
                         )
 
-                Syntax.Statement.AllocationExpression _ ->
-                    Debug.todo "Implement allocation expression"
+                Syntax.Statement.AllocationExpression allocation ->
+                    if
+                        State.isOfType attribution.variableAccessor.name
+                            (State.fromStatementVariable allocation.type_)
+                            afterAccessors
+                    then
+                        ( afterAccessors, "" )
+
+                    else
+                        ( State.raiseError
+                            { range = attribution.range
+                            , message =
+                                """I was trying to create a new array of type {{ALLOCATION_TYPE}}, and assign it to `{{VARIABLE_NAME}}`, but `{{VARIABLE_NAME}}` is of type {{VARIABLE_TYPE}}.
+\tTry changing the type of `{{VARIABLE_NAME}}` to {{ALLOCATION_TYPE}}, or the array type to {{VARIABLE_TYPE}}"""
+                                    |> String.replace "{{ALLOCATION_TYPE}}"
+                                        (State.fromStatementVariable allocation.type_
+                                            |> State.typeToString
+                                        )
+                                    |> String.replace "{{VARIABLE_NAME}}" accessorString
+                                    |> String.replace "{{VARIABLE_TYPE}}"
+                                        (State.getVariableType afterAccessors attribution.variableAccessor.name
+                                            |> Maybe.map State.typeToString
+                                            |> Maybe.withDefault "unknown type"
+                                        )
+                            }
+                            afterAccessors
+                        , ""
+                        )
 
                 Syntax.Statement.FunctionCallAttribution functionCall ->
                     ( afterAccessors
@@ -124,7 +150,11 @@ fromAttribution attribution state =
                 |> String.replace "{{ACCESSOR}}" accessorString
                 |> String.replace "{{VALUE}}" valueString
     in
-    State.addLine code afterValue
+    if String.isEmpty valueString then
+        afterValue
+
+    else
+        State.addLine code afterValue
 
 
 fromPrint : Syntax.Expression.Expression -> State -> State

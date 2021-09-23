@@ -6,6 +6,7 @@
 
 module Emit exposing (..)
 
+import CCParser
 import Emit.Expression
 import Emit.State
 import Emit.Statement
@@ -15,7 +16,7 @@ import Parser.Statement
 import Syntax.Expression
 
 
-statement : String -> String
+statement : String -> Result (List (Parser.Advanced.DeadEnd CCParser.Context CCParser.Problem)) String
 statement code =
     Parser.Advanced.run Parser.Statement.statement code
         |> Result.map
@@ -24,7 +25,6 @@ statement code =
                     |> Emit.Statement.emit statement_
                     |> Emit.State.code
             )
-        |> Result.withDefault "SOMETHING WRONG"
 
 
 fromString : String -> String

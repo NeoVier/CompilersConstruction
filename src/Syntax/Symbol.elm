@@ -99,7 +99,7 @@ tableFromProgram program =
 withStatement : Statement.Statement -> List String -> Table -> Table
 withStatement statement currentName table =
     case statement of
-        Statement.VariableDeclaration declaration ->
+        Statement.VariableDeclaration declaration _ ->
             Dict.insert
                 (currentName ++ [ declaration.name ] |> String.join ".")
                 (VariableDeclaration declaration)

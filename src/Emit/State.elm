@@ -19,8 +19,10 @@ module Emit.State exposing
     , createLabel
     , currentContext
     , enterContext
+    , fromStatementVariable
     , getVariableType
     , initialState
+    , isOfType
     , lastTemporaryVariable
     , leaveContext
     , raiseError
@@ -29,6 +31,7 @@ module Emit.State exposing
 
 import CCParser
 import Dict exposing (Dict)
+import Syntax.Statement
 
 
 type State
@@ -425,3 +428,36 @@ areSameType firstVar secondVar state =
 
         WithError _ ->
             False
+
+
+isOfType : String -> VariableType -> State -> Bool
+isOfType variableName type_ state =
+    case state of
+        Valid state_ ->
+            case getVariableByName variableName state_.variables of
+                Just ( _, variable ) ->
+                    case variable.variableType of
+                        NullVariable ->
+                            True
+
+                        _ ->
+                            variable.variableType == type_
+
+                Nothing ->
+                    False
+
+        WithError _ ->
+            False
+
+
+fromStatementVariable : Syntax.Statement.VariableType -> VariableType
+fromStatementVariable variableType =
+    case variableType of
+        Syntax.Statement.IntVariable ->
+            IntVariable
+
+        Syntax.Statement.FloatVariable ->
+            FloatVariable
+
+        Syntax.Statement.StringVariable ->
+            StringVariable

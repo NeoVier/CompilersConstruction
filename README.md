@@ -26,11 +26,12 @@ pacotes necessários do banco de dados do npm.
 
 Além do comando `make setup`, o Makefile também disponibiliza o comando `run`,
 que compila o projeto e, em seguida, o executa. Como precisamos de um arquivo de
-entrada, basta rodar o seguinte em um terminal:
+entrada e um de saída, basta rodar o seguinte em um terminal:
 
 ```bash
-make run input=examples/guessingGame.lcc
+make run input=examples/guessingGame.lcc output=output/guessingGame.int
 ```
 
 Onde `examples/guessingGame.lcc` pode ser qualquer caminho para um arquivo da
-linguagem CC-2021-1.
+linguagem CC-2021-1, a pasta `output` **já existe**, e o código intermediário
+gerado será escrito no arquivo `output/guessingGame.int`.

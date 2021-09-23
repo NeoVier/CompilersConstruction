@@ -2,4 +2,4 @@ setup:
 	npm install
 
 run:
-	npm run build && npm start $(input)
+	npm run build && npm start $(input) $(output)

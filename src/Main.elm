@@ -17,7 +17,6 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Parser.Advanced as Parser
 import Parser.Program as Program
-import Syntax.Program
 import Syntax.Symbol
 
 
@@ -67,34 +66,33 @@ main =
 
 
 type alias Model =
-    { program : Maybe Syntax.Program.Program }
+    { outputFile : String
+    }
 
 
 init : Encode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        filename =
-            case Decode.decodeValue (Decode.list Decode.string) flags of
-                Ok [ x ] ->
-                    Ok x
-
-                Ok [] ->
-                    Err "I received no file names! Please give me exactly one file name!"
-
-                Ok _ ->
-                    Err "I received too many arguments! I only accept a single file name!"
-
-                Err _ ->
-                    Err "I couldn't decode the CLI arguments, make sure you're sending them in correctly!"
+        onlyPrintError err =
+            ( { outputFile = "" }, print err )
     in
-    ( { program = Nothing }
-    , case filename of
-        Ok file ->
-            requestFile file
+    case Decode.decodeValue (Decode.list Decode.string) flags of
+        Ok [ inputFile, outputFile ] ->
+            ( { outputFile = outputFile }
+            , requestFile inputFile
+            )
 
-        Err err ->
-            print err
-    )
+        Ok [] ->
+            onlyPrintError "I received no file names! Please give me exactly two file names!"
+
+        Ok [ _ ] ->
+            onlyPrintError "I received too few arguments! I only accept an input file and an output file!"
+
+        Ok _ ->
+            onlyPrintError "I received too many arguments! I only accept an input file and an output file!"
+
+        Err _ ->
+            onlyPrintError "I couldn't decode the CLI arguments, make sure you're sending them in correctly!"
 
 
 
@@ -127,7 +125,10 @@ update (GotFile fileResult) model =
                                 [ Syntax.Symbol.tableFromProgram validProgram
                                     |> Syntax.Symbol.encodeTable
                                     |> printTable
-                                , writeToFile { fileName = "./test.convcc", contents = validCode }
+                                , writeToFile
+                                    { fileName = model.outputFile
+                                    , contents = validCode
+                                    }
                                 , [ "✓ All arithmetic expressions are valid"
                                   , "✓ All variable declarations are valid"
                                   , "✓ Every `break` statement is inside a `for` loop"

@@ -198,25 +198,6 @@ tagContext context tag =
             TaggedBlockContext tag
 
 
-untagContext : TaggedContext -> Context
-untagContext context =
-    case context of
-        TaggedForContext label _ ->
-            ForContext label
-
-        TaggedIfContext _ ->
-            IfContext
-
-        TaggedElseContext _ ->
-            ElseContext
-
-        TaggedFunctionContext label _ ->
-            FunctionContext label
-
-        TaggedBlockContext _ ->
-            BlockContext
-
-
 enterContext : Context -> State -> State
 enterContext context state =
     case state of

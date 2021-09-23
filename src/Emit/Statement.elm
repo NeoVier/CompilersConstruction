@@ -200,7 +200,7 @@ fromAttribution attribution state =
                                                             ( State.raiseError
                                                                 { range = functionCall.range
                                                                 , message =
-                                                                    "You tried passing `{{ARGUMENT_NAME}}` to `{{FUNCTION_NAME}}`, but `{{ARGUMENT_NAME}} is of type {{ARGUMENT_TYPE}}, and I was expecting a {{PARAMETER_TYPE}}"
+                                                                    "You tried passing `{{ARGUMENT_NAME}}` to `{{FUNCTION_NAME}}`, but `{{ARGUMENT_NAME}}` is of type {{ARGUMENT_TYPE}}, and I was expecting a {{PARAMETER_TYPE}}"
                                                                         |> String.replace "{{ARGUMENT_NAME}}" currParameter
                                                                         |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
                                                                         |> String.replace "{{ARGUMENT_TYPE}}" (State.typeToString parameterType)

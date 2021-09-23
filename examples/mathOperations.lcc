@@ -1,3 +1,15 @@
+def len(int a) {
+    print "TODO - Core library implementation";
+}
+
+def stringFromInt(int number) {
+    print "TODO - Core library implementation";
+}
+
+def insert(int a, int b) {
+    print "TODO - Core library implementation";
+}
+
 def max(int a, int b, int result) {
     if (a > b) {
         result = a;
@@ -53,13 +65,15 @@ def abs(int a, int result) {
     }
 }
 
-def gcd(int a, int b, int result) {
+def gcd(int a, int b) {
+    int result;
+
     if (b == 0) {
         result = a;
         return;
     } else {
         int modValue;
-        modValue = mod(a, b);
+        modValue = a % b;
         result = gcd(b, modValue);
         return;
     }
@@ -68,20 +82,27 @@ def gcd(int a, int b, int result) {
 def examples() {
     int a;
     int b;
+    int c;
+    string aString;
+    string bString;
+
     int minValue;
     int maxValue;
     int allNumbers[4];
     a = -5;
 
-    print "Initial value: " + a;
-    b = abs(a, b);
-    print "After abs: " + b;
+    aString = stringFromInt(a);
 
-    print "Wich is smaller: " + a + " or " + b + "?";
+    print "Initial value: " + aString;
+    b = abs(a, b);
+    bString = stringFromInt(b);
+    print "After abs: " + bString;
+
+    print "Wich is smaller: " + aString + " or " + bString + "?";
     minValue = min(a, b, minValue);
     print c;
 
-    print "Wich is bigger: " + a + " or " + b + "?";
+    print "Wich is bigger: " + aString + " or " + bString + "?";
     maxValue = min(a, b, maxValue);
     print c;
 
@@ -89,8 +110,12 @@ def examples() {
     allNumbers = insert(allNumbers, b);
     allNumbers = insert(allNumbers, minValue);
     allNumbers = insert(allNumbers, maxValue);
+
+    string allNumbersString;
+    allNumbersString = stringFromInt(allNumbers);
+    
     int averageValue;
-    print "What is the average of " + allNumbers + "?";
+    print "What is the average of " + allNumbersString + "?";
     averageValue = average(allNumbers, averageValue);
 
     print "What is 2 to the power of 2?";
@@ -100,12 +125,17 @@ def examples() {
     powerValue = power(two, two, powerValue);
     print powerValue;
 
+    string averageValueString;
+    averageValueString = stringFromInt(averageValue);
+    string maxValueString;
+    maxValueString = stringFromInt(maxValue);
+
     print "What is the Greatest Common Divider (gcd) between "
-        + maxValue
+        + maxValueString
         + " and "
-        + averageValue
+        + averageValueString
         + "?";
     int gcdValue;
-    gcdValue = gcd(maxValue, averageValue, gcdValue);
+    gcdValue = gcd(maxValue, averageValue);
     print gcdValue;
 }

@@ -4,7 +4,7 @@
   float z;
   int i;
   int max;
-  x = 0;
+  x = 0.0;
   max = 10000;
   for (i = 1; i <= max; i = i + 1){
     print x;
@@ -34,7 +34,5 @@
 
   for (i = 0; i < 10; i = i + 1)
     print y[i];
-
-  return;
 }
 }

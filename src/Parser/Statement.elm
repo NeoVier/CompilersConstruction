@@ -173,7 +173,11 @@ allocation =
 functionCall : CCParser Statement.FunctionCall
 functionCall =
     Parser.inContext CCParser.FunctionCall <|
-        Parser.succeed Statement.FunctionCall
+        Parser.succeed
+            (\start name parameters end ->
+                Statement.FunctionCall name parameters { start = start, end = end }
+            )
+            |= Parser.getPosition
             |= Expression.variableName
             |. Parser.spaces
             |= Parser.sequence
@@ -184,6 +188,7 @@ functionCall =
                 , item = Expression.variableName
                 , trailing = Parser.Optional
                 }
+            |= Parser.getPosition
 
 
 

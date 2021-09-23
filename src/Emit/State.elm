@@ -20,7 +20,9 @@ module Emit.State exposing
     , createLabel
     , enterContext
     , fromStatementVariable
+    , functionExists
     , getForContext
+    , getFunctionArgumentTypes
     , getFunctionContext
     , getVariableType
     , initialState
@@ -522,3 +524,28 @@ addFunction range functionName argumentTypes state =
 
         WithError err ->
             WithError err
+
+
+getFunctionArgumentTypes : State -> String -> Maybe (List VariableType)
+getFunctionArgumentTypes state functionName =
+    case state of
+        Valid state_ ->
+            Dict.get functionName state_.functions
+
+        WithError _ ->
+            Nothing
+
+
+functionExists : String -> List VariableType -> State -> Bool
+functionExists functionName argumentTypes state =
+    case state of
+        Valid state_ ->
+            case Dict.get functionName state_.functions of
+                Nothing ->
+                    False
+
+                Just parameters ->
+                    parameters == argumentTypes
+
+        WithError _ ->
+            False

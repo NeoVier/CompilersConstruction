@@ -136,14 +136,112 @@ fromAttribution attribution state =
                         )
 
                 Syntax.Statement.FunctionCallAttribution functionCall ->
-                    ( afterAccessors
-                    , functionCall.functionName
-                        ++ "("
-                        ++ (functionCall.parameters
-                                |> String.join ", "
-                           )
-                        ++ ")"
-                    )
+                    case State.getFunctionArgumentTypes afterAccessors functionCall.functionName of
+                        Nothing ->
+                            ( State.raiseError
+                                { range = functionCall.range
+                                , message =
+                                    "You tried calling `{{FUNCTION_NAME}}`, but that function is not defined! Try defining it before calling it."
+                                        |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                }
+                                afterAccessors
+                            , ""
+                            )
+
+                        Just functionTypes ->
+                            functionCall.parameters
+                                |> List.foldl
+                                    (\currParameter ( currState, currFunctionTypes ) ->
+                                        case State.getVariableType currState currParameter of
+                                            Nothing ->
+                                                ( State.raiseError
+                                                    { range = functionCall.range
+                                                    , message =
+                                                        "You tried passing `{{ARGUMENT_NAME}}` as a parameter to `{{FUNCTION_NAME}}`, but you haven't declared `{{ARGUMENT_NAME}}` yet! Try declaring it first."
+                                                            |> String.replace "{{ARGUMENT_NAME}}" currParameter
+                                                            |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                                    }
+                                                    currState
+                                                , currFunctionTypes
+                                                )
+
+                                            Just parameterType ->
+                                                case List.head currFunctionTypes of
+                                                    Nothing ->
+                                                        ( State.raiseError
+                                                            { range = functionCall.range
+                                                            , message =
+                                                                "You're passing too many arguments to `{{FUNCTION_NAME}}`! You passed {{PASSED}} arguments, but I was expecting {{EXPECTING}} arguments"
+                                                                    |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                                                    |> String.replace "{{PASSED}}"
+                                                                        (List.length functionCall.parameters
+                                                                            |> String.fromInt
+                                                                        )
+                                                                    |> String.replace "{{EXPECTING}}"
+                                                                        (List.length functionTypes
+                                                                            |> String.fromInt
+                                                                        )
+                                                            }
+                                                            currState
+                                                        , currFunctionTypes
+                                                        )
+
+                                                    Just functionType ->
+                                                        if parameterType == functionType then
+                                                            ( currState
+                                                                |> State.addLine
+                                                                    ("param {{ARGUMENT_NAME}}"
+                                                                        |> String.replace "{{ARGUMENT_NAME}}" currParameter
+                                                                    )
+                                                            , List.drop 1 currFunctionTypes
+                                                            )
+
+                                                        else
+                                                            ( State.raiseError
+                                                                { range = functionCall.range
+                                                                , message =
+                                                                    "You tried passing `{{ARGUMENT_NAME}}` to `{{FUNCTION_NAME}}`, but `{{ARGUMENT_NAME}} is of type {{ARGUMENT_TYPE}}, and I was expecting a {{PARAMETER_TYPE}}"
+                                                                        |> String.replace "{{ARGUMENT_NAME}}" currParameter
+                                                                        |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                                                        |> String.replace "{{ARGUMENT_TYPE}}" (State.typeToString parameterType)
+                                                                        |> String.replace "{{PARAMETER_TYPE}}" (State.typeToString functionType)
+                                                                }
+                                                                currState
+                                                            , currFunctionTypes
+                                                            )
+                                    )
+                                    ( afterAccessors, functionTypes )
+                                |> (\( newState, remainingFunctionTypes ) ->
+                                        if List.isEmpty remainingFunctionTypes then
+                                            newState
+
+                                        else
+                                            State.raiseError
+                                                { range = functionCall.range
+                                                , message =
+                                                    "You're passing too few arguments to `{{FUNCTION_NAME}}`! You passed {{PASSED}} arguments, but I was expecting {{EXPECTING}} arguments"
+                                                        |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                                        |> String.replace "{{PASSED}}"
+                                                            (List.length functionCall.parameters
+                                                                |> String.fromInt
+                                                            )
+                                                        |> String.replace "{{EXPECTING}}"
+                                                            (List.length functionTypes
+                                                                |> String.fromInt
+                                                            )
+                                                }
+                                                newState
+                                   )
+                                |> (\newState ->
+                                        ( newState
+                                        , "call {{FUNCTION_NAME}}, {{ARGUMENT_NUMBER}}"
+                                            |> String.replace "{{FUNCTION_NAME}}" functionCall.functionName
+                                            |> String.replace "{{ARGUMENT_NUMBER}}"
+                                                (List.length functionTypes
+                                                    |> String.fromInt
+                                                )
+                                        )
+                                   )
 
         code =
             "{{ACCESSOR}} = {{VALUE}}"
@@ -358,7 +456,6 @@ fromSemicolon state =
 
 
 -- FUNCTIONS
--- TODO - Change function **CALL**
 
 
 fromFunctionDeclaration : Syntax.Statement.FunctionDeclaration -> State -> State

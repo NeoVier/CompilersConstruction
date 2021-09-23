@@ -115,6 +115,7 @@ type alias Allocation =
 type alias FunctionCall =
     { functionName : String
     , parameters : ParameterList
+    , range : CCParser.Range
     }
 
 

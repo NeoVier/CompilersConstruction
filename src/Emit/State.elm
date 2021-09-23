@@ -9,6 +9,7 @@ module Emit.State exposing
     , Label
     , State
     , VariableType(..)
+    , addFunction
     , addLabel
     , addLine
     , addLineWithLabel
@@ -17,9 +18,10 @@ module Emit.State exposing
     , areSameType
     , code
     , createLabel
-    , currentContext
     , enterContext
     , fromStatementVariable
+    , getForContext
+    , getFunctionContext
     , getVariableType
     , initialState
     , isOfType
@@ -42,6 +44,7 @@ type State
         , lastLabelIndex : Int
         , lastContextIndex : Int
         , contexts : List TaggedContext
+        , functions : Dict String (List VariableType)
         }
     | WithError Error
 
@@ -65,6 +68,7 @@ initialState =
         , lastLabelIndex = -1
         , lastContextIndex = -1
         , contexts = []
+        , functions = Dict.empty
         }
 
 
@@ -129,6 +133,46 @@ type TaggedContext
     | TaggedElseContext Int
     | TaggedFunctionContext Label Int
     | TaggedBlockContext Int
+
+
+getFunctionContext : State -> Maybe Label
+getFunctionContext state =
+    case state of
+        Valid state_ ->
+            state_.contexts
+                |> List.filterMap
+                    (\context ->
+                        case context of
+                            TaggedFunctionContext label _ ->
+                                Just label
+
+                            _ ->
+                                Nothing
+                    )
+                |> List.head
+
+        WithError _ ->
+            Nothing
+
+
+getForContext : State -> Maybe Label
+getForContext state =
+    case state of
+        Valid state_ ->
+            state_.contexts
+                |> List.filterMap
+                    (\context ->
+                        case context of
+                            TaggedForContext label _ ->
+                                Just label
+
+                            _ ->
+                                Nothing
+                    )
+                |> List.head
+
+        WithError _ ->
+            Nothing
 
 
 tagContext : Context -> Int -> TaggedContext
@@ -202,17 +246,6 @@ leaveContext state =
 
         WithError err ->
             WithError err
-
-
-currentContext : State -> Maybe Context
-currentContext state =
-    case state of
-        Valid state_ ->
-            List.head state_.contexts
-                |> Maybe.map untagContext
-
-        WithError _ ->
-            Nothing
 
 
 
@@ -461,3 +494,31 @@ fromStatementVariable variableType =
 
         Syntax.Statement.StringVariable ->
             StringVariable
+
+
+
+-- FUNCTIONS
+
+
+addFunction : CCParser.Range -> String -> List VariableType -> State -> State
+addFunction range functionName argumentTypes state =
+    case state of
+        Valid state_ ->
+            case Dict.get functionName state_.functions of
+                Nothing ->
+                    Valid
+                        { state_
+                            | functions =
+                                Dict.insert functionName argumentTypes state_.functions
+                        }
+
+                Just _ ->
+                    WithError
+                        { range = range
+                        , message =
+                            "Tried adding a new function with name `{{FUNCTION_NAME}}`, but a function of the same name was already registered. Try changing the name of one of the functions!"
+                                |> String.replace "{{FUNCTION_NAME}}" functionName
+                        }
+
+        WithError err ->
+            WithError err

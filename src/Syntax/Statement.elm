@@ -175,6 +175,7 @@ type alias StatementList =
 type alias FunctionDeclaration =
     { name : String
     , parameters : List FunctionParameter
+    , definitionRange : CCParser.Range
     , body : StatementList
     }
 
@@ -185,6 +186,7 @@ type alias FunctionDeclaration =
 type alias FunctionParameter =
     { type_ : VariableType
     , name : String
+    , definitionRange : CCParser.Range
     }
 
 

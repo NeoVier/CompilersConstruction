@@ -266,7 +266,14 @@ statementList =
 functionDeclaration : CCParser Statement.FunctionDeclaration
 functionDeclaration =
     Parser.inContext CCParser.FunctionDeclaration <|
-        Parser.succeed Statement.FunctionDeclaration
+        Parser.succeed
+            (\definitionStart name parameters definitionEnd body ->
+                Statement.FunctionDeclaration name
+                    parameters
+                    { start = definitionStart, end = definitionEnd }
+                    body
+            )
+            |= Parser.getPosition
             |. Parser.keyword (Parser.Token "def" (CCParser.ExpectingKeyword "def"))
             |. Parser.spaces
             |= Expression.variableName
@@ -279,13 +286,19 @@ functionDeclaration =
                 , item = functionParameter
                 , trailing = Parser.Optional
                 }
+            |= Parser.getPosition
             |. Parser.spaces
             |= statementList
 
 
 functionParameter : CCParser Statement.FunctionParameter
 functionParameter =
-    Parser.succeed Statement.FunctionParameter
+    Parser.succeed
+        (\start type_ name end ->
+            Statement.FunctionParameter type_ name { start = start, end = end }
+        )
+        |= Parser.getPosition
         |= variableType
         |. Parser.spaces
         |= Expression.variableName
+        |= Parser.getPosition

@@ -4,7 +4,7 @@
 -}
 
 
-module Emit.Statement exposing (emit, fromIf)
+module Emit.Statement exposing (emit, fromFunctionDeclaration)
 
 import CCParser
 import Emit.Expression
@@ -181,8 +181,8 @@ fromRead accessor state =
 
 fromReturn : CCParser.Range -> State -> State
 fromReturn range state =
-    case State.currentContext state of
-        Just (State.FunctionContext exitLabel) ->
+    case State.getFunctionContext state of
+        Just exitLabel ->
             State.addLineWithLabel
                 { code = "goto {{LABEL}}", labelPlaceholder = "{{LABEL}}" }
                 exitLabel
@@ -336,8 +336,8 @@ fromBlock { firstStatement, otherStatements } state =
 
 fromBreak : CCParser.Range -> State -> State
 fromBreak range state =
-    case State.currentContext state of
-        Just (State.ForContext exitLabel) ->
+    case State.getForContext state of
+        Just exitLabel ->
             State.addLineWithLabel
                 { code = "goto {{LABEL}}", labelPlaceholder = "{{LABEL}}" }
                 exitLabel
@@ -354,3 +354,42 @@ fromBreak range state =
 fromSemicolon : State -> State
 fromSemicolon state =
     state
+
+
+
+-- FUNCTIONS
+-- TODO - Change function **CALL**
+
+
+fromFunctionDeclaration : Syntax.Statement.FunctionDeclaration -> State -> State
+fromFunctionDeclaration functionDeclaration state =
+    let
+        ( initialState, label ) =
+            State.createLabel state
+    in
+    initialState
+        |> State.addFunction functionDeclaration.definitionRange
+            functionDeclaration.name
+            (functionDeclaration.parameters
+                |> List.map (.type_ >> State.fromStatementVariable)
+            )
+        |> State.enterContext (State.FunctionContext label)
+        |> (\state_ ->
+                List.foldl
+                    (\currParameter currState ->
+                        State.addVariable currParameter.definitionRange
+                            { type_ = State.fromStatementVariable currParameter.type_
+                            , name = currParameter.name
+                            }
+                            currState
+                    )
+                    state_
+                    functionDeclaration.parameters
+           )
+        |> (\state_ ->
+                List.foldl (\currStatement currState -> emit currStatement currState)
+                    state_
+                    (functionDeclaration.body.firstStatement :: functionDeclaration.body.otherStatements)
+           )
+        |> State.addLabel label
+        |> State.leaveContext

@@ -8,12 +8,25 @@ module Emit exposing (..)
 
 import CCParser
 import Emit.Expression
+import Emit.Program
 import Emit.State
 import Emit.Statement
 import Parser.Advanced
 import Parser.Expression
+import Parser.Program
 import Parser.Statement
 import Syntax.Expression
+
+
+program : String -> Result (List (Parser.Advanced.DeadEnd CCParser.Context CCParser.Problem)) String
+program code =
+    Parser.Advanced.run Parser.Program.program code
+        |> Result.map
+            (\program_ ->
+                Emit.State.initialState
+                    |> Emit.Program.emit program_
+                    |> Emit.State.code
+            )
 
 
 statement : String -> Result (List (Parser.Advanced.DeadEnd CCParser.Context CCParser.Problem)) String
